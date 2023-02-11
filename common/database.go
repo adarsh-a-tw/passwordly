@@ -1,10 +1,12 @@
 package common
 
 import (
-	"gorm.io/gorm"
-	"gorm.io/driver/sqlite"
-	"gorm.io/driver/postgres"
 	"fmt"
+
+	"github.com/adarsh-a-tw/passwordly/models"
+	"gorm.io/driver/postgres"
+	"gorm.io/driver/sqlite"
+	"gorm.io/gorm"
 )
 
 var Db *gorm.DB
@@ -20,6 +22,11 @@ func ConfigureDB(dbType DBType, config DBConfigurable) {
 	if err != nil {
 		panic(err)
 	}
+	MigrateDB()
+}
+
+func MigrateDB() {
+	Db.AutoMigrate(&models.User{})
 }
 
 type DBConfigurable interface {
