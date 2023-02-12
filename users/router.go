@@ -6,6 +6,7 @@ import (
 )
 
 func SetupRoutes(r *gin.Engine, db *gorm.DB) {
+	// Unauthenticated Routes
 	rg := r.Group("/v1/users")
 
 	uh := UserHandler{
