@@ -1,8 +1,6 @@
 package main
 
 import (
-	"net/http"
-
 	"github.com/adarsh-a-tw/passwordly/common"
 	"github.com/adarsh-a-tw/passwordly/users"
 	"github.com/gin-gonic/gin"
@@ -22,11 +20,6 @@ func main() {
 	migrate()
 
 	r := gin.Default()
-	r.GET("/ping", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{
-			"message": "pong",
-		})
-	})
 
 	users.SetupRoutes(r, common.DB())
 

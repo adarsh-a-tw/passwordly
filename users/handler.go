@@ -10,8 +10,8 @@ import (
 )
 
 type UserHandler struct {
-	ur UserRepository
-	ap utils.AuthProvider
+	Repo         UserRepository
+	AuthProvider utils.AuthProvider
 }
 
 func (uh *UserHandler) Create(ctx *gin.Context) {
@@ -28,7 +28,7 @@ func (uh *UserHandler) Create(ctx *gin.Context) {
 		Password: cur.Password,
 	}
 
-	if err := uh.ur.Create(&u); err != nil {
+	if err := uh.Repo.Create(&u); err != nil {
 		ctx.JSON(http.StatusInternalServerError, common.ErrorResponse{
 			Message: err.Error(),
 		})
@@ -52,13 +52,13 @@ func (uh *UserHandler) Login(ctx *gin.Context) {
 	}
 
 	var u User
-	if err := uh.ur.Find(lur.Username, &u); err != nil {
+	if err := uh.Repo.Find(lur.Username, &u); err != nil {
 		ctx.JSON(http.StatusBadRequest, common.ErrorResponse{Message: "Invalid Credentials"})
 		return
 	}
 
 	if u.Password == lur.Password {
-		tokenStr, err := uh.ap.GenerateToken(u.Id)
+		tokenStr, err := uh.AuthProvider.GenerateToken(u.Id)
 		if err != nil {
 			ctx.JSON(http.StatusInternalServerError, common.ErrorResponse{Message: "Something went wrong. Try again."})
 			return

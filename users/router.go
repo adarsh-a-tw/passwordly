@@ -8,13 +8,13 @@ import (
 
 func SetupRoutes(r *gin.Engine, db *gorm.DB) {
 	// Unauthenticated Routes
-	rg := r.Group("/v1/users")
+	rg := r.Group("/api/v1/users")
 
 	uh := UserHandler{
-		ur: &UserRepositoryImpl{
+		Repo: &UserRepositoryImpl{
 			db: db,
 		},
-		ap: &utils.AuthProviderImpl{},
+		AuthProvider: &utils.AuthProviderImpl{},
 	}
 
 	rg.POST("", uh.Create)
