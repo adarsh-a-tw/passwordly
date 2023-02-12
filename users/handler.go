@@ -4,12 +4,14 @@ import (
 	"net/http"
 
 	"github.com/adarsh-a-tw/passwordly/common"
+	"github.com/adarsh-a-tw/passwordly/utils"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 )
 
 type UserHandler struct {
 	ur UserRepository
+	ap utils.AuthProvider
 }
 
 func (uh *UserHandler) Create(ctx *gin.Context) {
@@ -40,4 +42,30 @@ func (uh *UserHandler) Create(ctx *gin.Context) {
 		CreatedAt: u.CreatedAt,
 		UpdatedAt: u.UpdatedAt,
 	})
+}
+
+func (uh *UserHandler) Login(ctx *gin.Context) {
+	var lur LoginUserRequest
+	if err := ctx.ShouldBindJSON(&lur); err != nil {
+		ctx.JSON(http.StatusBadRequest, common.ErrorResponse{Message: "Invalid request body"})
+		return
+	}
+
+	var u User
+	if err := uh.ur.Find(lur.Username, &u); err != nil {
+		ctx.JSON(http.StatusBadRequest, common.ErrorResponse{Message: "Invalid Credentials"})
+		return
+	}
+
+	if u.Password == lur.Password {
+		tokenStr, err := uh.ap.GenerateToken(u.Id)
+		if err != nil {
+			ctx.JSON(http.StatusInternalServerError, common.ErrorResponse{Message: "Something went wrong. Try again."})
+			return
+		}
+		ctx.JSON(http.StatusOK, LoginUserSuccessResponse{Token: tokenStr})
+		return
+	}
+
+	ctx.JSON(http.StatusBadRequest, common.ErrorResponse{Message: "Invalid Credentials"})
 }

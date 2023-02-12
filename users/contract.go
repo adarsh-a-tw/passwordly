@@ -8,6 +8,15 @@ type CreateUserRequest struct {
 	Password string `json:"password" binding:"required"`
 }
 
+type LoginUserRequest struct {
+	Username string `json:"username" binding:"required"`
+	Password string `json:"password" binding:"required"`
+}
+
+type LoginUserSuccessResponse struct {
+	Token string `json:"token"`
+}
+
 type UserResponse struct {
 	Id        string    `json:"id"`
 	Username  string    `json:"username"`
