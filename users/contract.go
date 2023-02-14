@@ -3,9 +3,9 @@ package users
 import "time"
 
 type CreateUserRequest struct {
-	Username string `json:"username" binding:"required"`
-	Email    string `json:"email" binding:"required"`
-	Password string `json:"password" binding:"required"`
+	Username string `json:"username" binding:"required,username"`
+	Email    string `json:"email" binding:"required,email"`
+	Password string `json:"password" binding:"required,password"`
 }
 
 type LoginUserRequest struct {

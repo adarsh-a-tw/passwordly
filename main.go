@@ -21,6 +21,7 @@ func main() {
 
 	r := gin.Default()
 
+	users.RegisterValidations()
 	users.SetupRoutes(r, common.DB())
 
 	r.Run()

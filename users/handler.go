@@ -17,7 +17,7 @@ type UserHandler struct {
 func (uh *UserHandler) Create(ctx *gin.Context) {
 	var cur CreateUserRequest
 	if err := ctx.ShouldBindJSON(&cur); err != nil {
-		ctx.JSON(http.StatusBadRequest, common.ErrorResponse{Message: "Invalid request body"})
+		ctx.JSON(http.StatusBadRequest, common.ErrorResponse{Message: "Invalid request body" + err.Error()})
 		return
 	}
 
