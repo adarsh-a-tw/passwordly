@@ -40,6 +40,20 @@ func (_m *UserRepository) Find(username string, u *users.User) error {
 	return r0
 }
 
+// FindById provides a mock function with given fields: id, u
+func (_m *UserRepository) FindById(id string, u *users.User) error {
+	ret := _m.Called(id, u)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(string, *users.User) error); ok {
+		r0 = rf(id, u)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
 type mockConstructorTestingTNewUserRepository interface {
 	mock.TestingT
 	Cleanup(func())

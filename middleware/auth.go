@@ -13,7 +13,7 @@ func TokenAuthMiddleware(ctx *gin.Context) {
 	tokenStr := extractTokenFromHeader(ctx.Request.Header.Get("authorization"))
 	ap := utils.AuthProviderImpl{}
 	if uid, err := ap.VerifyToken(tokenStr); err != nil {
-		ctx.AbortWithStatusJSON(http.StatusUnauthorized, common.ErrorResponse{Message: err.Error()})
+		ctx.AbortWithStatusJSON(http.StatusUnauthorized, common.ErrorResponse{Message: "Invalid Token"})
 	} else {
 		ctx.Set("user_id", uid)
 		ctx.Next()

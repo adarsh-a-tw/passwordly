@@ -18,7 +18,7 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
-func TestUserHandler_ShouldLoginUserSuccessfully(t *testing.T) {
+func TestUserHandler_Login_ShouldLoginUserSuccessfully(t *testing.T) {
 	mockAPIToken := "MOCK_API_TOKEN"
 	expectedResponse := users.LoginUserSuccessResponse{Token: mockAPIToken}
 
@@ -69,7 +69,7 @@ func TestUserHandler_ShouldLoginUserSuccessfully(t *testing.T) {
 	assert.Equal(t, expectedResponse, actualResponse)
 }
 
-func TestUserHandler_ShouldThrowErrorForInternalServerError(t *testing.T) {
+func TestUserHandler_Login_ShouldThrowErrorForInternalServerError(t *testing.T) {
 	mockAPIToken := "MOCK_API_TOKEN"
 	expectedResponse := common.ErrorResponse{Message: "Something went wrong. Try again."}
 
@@ -122,7 +122,7 @@ func TestUserHandler_ShouldThrowErrorForInternalServerError(t *testing.T) {
 	assert.Equal(t, expectedResponse, actualResponse)
 }
 
-func TestUserHandler_ShouldThrowErrorForInvalidPassword(t *testing.T) {
+func TestUserHandler_Login_ShouldThrowErrorForInvalidPassword(t *testing.T) {
 	expectedResponse := common.ErrorResponse{Message: "Invalid Credentials"}
 
 	lur := users.LoginUserRequest{
@@ -170,7 +170,7 @@ func TestUserHandler_ShouldThrowErrorForInvalidPassword(t *testing.T) {
 	assert.Equal(t, expectedResponse, actualResponse)
 }
 
-func TestUserHandler_ShouldThrowErrorForInvalidUsername(t *testing.T) {
+func TestUserHandler_Login_ShouldThrowErrorForInvalidUsername(t *testing.T) {
 	expectedResponse := common.ErrorResponse{Message: "Invalid Credentials"}
 
 	lur := users.LoginUserRequest{
@@ -213,7 +213,7 @@ func TestUserHandler_ShouldThrowErrorForInvalidUsername(t *testing.T) {
 	assert.Equal(t, expectedResponse, actualResponse)
 }
 
-func TestUserHandler_ShouldThrowErrorForInvalidRequestBody(t *testing.T) {
+func TestUserHandler_Login_ShouldThrowErrorForInvalidRequestBody(t *testing.T) {
 	expectedResponse := common.ErrorResponse{Message: "Invalid request body"}
 
 	rec := httptest.NewRecorder()
@@ -238,6 +238,85 @@ func TestUserHandler_ShouldThrowErrorForInvalidRequestBody(t *testing.T) {
 	}
 
 	assert.Equal(t, http.StatusBadRequest, rec.Code)
+	assert.Equal(t, expectedResponse, actualResponse)
+}
+
+func TestUserHandler_FetchUser_ShouldFetchUserDetailsSuccessfully(t *testing.T) {
+	expectedResponse := users.UserResponse{Id: "mock_id", Username: "mock_username", Email: "test@email.com"}
+
+	rec := httptest.NewRecorder()
+	ctx, _ := gin.CreateTestContext(rec)
+
+	req := httptest.NewRequest("GET", "/api/v1/users/me", nil)
+	ctx.Request = req
+
+	repo := &user_mocks.UserRepository{}
+	ap := &utils_mocks.AuthProvider{}
+
+	repo.On("FindById", "mock_id", mock.AnythingOfType("*users.User")).Return(nil).Run(func(args mock.Arguments) {
+		arg := args.Get(1).(*users.User)
+		mu := mockUser()
+		arg.Id = mu.Id
+		arg.Username = mu.Username
+		arg.Email = mu.Email
+		arg.Password = mu.Password
+	})
+
+	// Mocking TokenAuthMiddleware
+	ctx.Set("user_id", "mock_id")
+
+	uh := users.UserHandler{
+		Repo:         repo,
+		AuthProvider: ap,
+	}
+
+	uh.FetchUser(ctx)
+
+	var actualResponse users.UserResponse
+	if err := json.NewDecoder(rec.Body).Decode(&actualResponse); err != nil {
+		t.Failed()
+	}
+
+	repo.AssertCalled(t, "FindById", "mock_id", mock.AnythingOfType("*users.User"))
+
+	assert.Equal(t, http.StatusOK, rec.Code)
+	assert.Equal(t, expectedResponse, actualResponse)
+}
+
+func TestUserHandler_Login_ShouldThrowErrorForInvalidId(t *testing.T) {
+	expectedResponse := common.ErrorResponse{Message: "Something went wrong. Try again."}
+
+	rec := httptest.NewRecorder()
+	ctx, _ := gin.CreateTestContext(rec)
+
+	req := httptest.NewRequest("GET", "/api/v1/users/me", nil)
+	ctx.Request = req
+
+	repo := &user_mocks.UserRepository{}
+	ap := &utils_mocks.AuthProvider{}
+
+	repo.On("FindById", "invalid_id", mock.AnythingOfType("*users.User")).Return(
+		errors.New("Cannot find user with given username"),
+	)
+
+	// Mocking TokenAuthMiddleware
+	ctx.Set("user_id", "invalid_id")
+
+	uh := users.UserHandler{
+		Repo:         repo,
+		AuthProvider: ap,
+	}
+
+	uh.FetchUser(ctx)
+
+	var actualResponse common.ErrorResponse
+	if err := json.NewDecoder(rec.Body).Decode(&actualResponse); err != nil {
+		t.Failed()
+	}
+
+	repo.AssertCalled(t, "FindById", "invalid_id", mock.AnythingOfType("*users.User"))
+
+	assert.Equal(t, http.StatusInternalServerError, rec.Code)
 	assert.Equal(t, expectedResponse, actualResponse)
 }
 

@@ -36,11 +36,9 @@ func (uh *UserHandler) Create(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusCreated, UserResponse{
-		Id:        u.Id,
-		Username:  u.Username,
-		Email:     u.Email,
-		CreatedAt: u.CreatedAt,
-		UpdatedAt: u.UpdatedAt,
+		Id:       u.Id,
+		Username: u.Username,
+		Email:    u.Email,
 	})
 }
 
@@ -68,4 +66,24 @@ func (uh *UserHandler) Login(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusBadRequest, common.ErrorResponse{Message: "Invalid Credentials"})
+}
+
+func (uh *UserHandler) FetchUser(ctx *gin.Context) {
+	id := ctx.GetString("user_id")
+	var u User
+
+	if err := uh.Repo.FindById(id, &u); err != nil {
+		ctx.JSON(http.StatusInternalServerError, common.ErrorResponse{Message: "Something went wrong. Try again."})
+		return
+	}
+
+	ctx.JSON(
+		http.StatusOK,
+		UserResponse{
+			Id:       u.Id,
+			Username: u.Username,
+			Email:    u.Email,
+		},
+	)
+
 }
