@@ -54,6 +54,20 @@ func (_m *UserRepository) FindById(id string, u *users.User) error {
 	return r0
 }
 
+// Update provides a mock function with given fields: u
+func (_m *UserRepository) Update(u *users.User) error {
+	ret := _m.Called(u)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(*users.User) error); ok {
+		r0 = rf(u)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
 type mockConstructorTestingTNewUserRepository interface {
 	mock.TestingT
 	Cleanup(func())

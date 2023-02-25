@@ -29,9 +29,7 @@ func (uh *UserHandler) Create(ctx *gin.Context) {
 	}
 
 	if err := uh.Repo.Create(&u); err != nil {
-		ctx.JSON(http.StatusInternalServerError, common.ErrorResponse{
-			Message: err.Error(),
-		})
+		ctx.JSON(http.StatusInternalServerError, common.InternalServerError())
 		return
 	}
 
@@ -58,7 +56,7 @@ func (uh *UserHandler) Login(ctx *gin.Context) {
 	if u.Password == lur.Password {
 		tokenStr, err := uh.AuthProvider.GenerateToken(u.Id)
 		if err != nil {
-			ctx.JSON(http.StatusInternalServerError, common.ErrorResponse{Message: "Something went wrong. Try again."})
+			ctx.JSON(http.StatusInternalServerError, common.InternalServerError())
 			return
 		}
 		ctx.JSON(http.StatusOK, LoginUserSuccessResponse{Token: tokenStr})
@@ -73,7 +71,7 @@ func (uh *UserHandler) FetchUser(ctx *gin.Context) {
 	var u User
 
 	if err := uh.Repo.FindById(id, &u); err != nil {
-		ctx.JSON(http.StatusInternalServerError, common.ErrorResponse{Message: "Something went wrong. Try again."})
+		ctx.JSON(http.StatusInternalServerError, common.InternalServerError())
 		return
 	}
 
@@ -86,4 +84,38 @@ func (uh *UserHandler) FetchUser(ctx *gin.Context) {
 		},
 	)
 
+}
+
+func (uh *UserHandler) ChangePassword(ctx *gin.Context) {
+	id := ctx.GetString("user_id")
+	var cpr ChangePasswordRequest
+	if err := ctx.ShouldBindJSON(&cpr); err != nil {
+		ctx.JSON(http.StatusBadRequest, common.ErrorResponse{Message: "Invalid Request body"})
+		return
+	}
+
+	var u User
+	if err := uh.Repo.FindById(id, &u); err != nil {
+		ctx.JSON(http.StatusInternalServerError, common.InternalServerError())
+		return
+	}
+
+	if cpr.CurrentPassword != u.Password {
+		ctx.JSON(http.StatusBadRequest, common.ErrorResponse{Message: "Current password does not match"})
+		return
+	}
+
+	if cpr.NewPassword == u.Password {
+		ctx.JSON(http.StatusBadRequest, common.ErrorResponse{Message: "New password and current password should not be the same"})
+		return
+	}
+
+	u.Password = cpr.NewPassword
+
+	if err := uh.Repo.Update(&u); err != nil {
+		ctx.JSON(http.StatusInternalServerError, common.InternalServerError())
+		return
+	}
+
+	ctx.JSON(http.StatusOK, nil)
 }

@@ -15,6 +15,11 @@ type LoginUserSuccessResponse struct {
 	Token string `json:"token"`
 }
 
+type ChangePasswordRequest struct {
+	CurrentPassword string `json:"current_password" binding:"required"`
+	NewPassword     string `json:"new_password" binding:"required,password"`
+}
+
 type UserResponse struct {
 	Id       string `json:"id"`
 	Username string `json:"username"`

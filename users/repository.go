@@ -8,6 +8,7 @@ type UserRepository interface {
 	Create(u *User) error
 	Find(username string, u *User) error
 	FindById(id string, u *User) error
+	Update(u *User) error
 }
 
 type UserRepositoryImpl struct {
@@ -24,4 +25,8 @@ func (ur *UserRepositoryImpl) Find(username string, u *User) error {
 
 func (ur *UserRepositoryImpl) FindById(id string, u *User) error {
 	return ur.db.Where("id = ?", id).Find(u).Error
+}
+
+func (ur *UserRepositoryImpl) Update(u *User) error {
+	return ur.db.Save(u).Error
 }
