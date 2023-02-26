@@ -1,6 +1,7 @@
 package users
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/adarsh-a-tw/passwordly/common"
@@ -10,8 +11,9 @@ import (
 )
 
 type UserHandler struct {
-	Repo         UserRepository
-	AuthProvider utils.AuthProvider
+	Repo           UserRepository
+	AuthProvider   utils.AuthProvider
+	PasswordHasher utils.PasswordHasher
 }
 
 func (uh *UserHandler) Create(ctx *gin.Context) {
@@ -37,11 +39,13 @@ func (uh *UserHandler) Create(ctx *gin.Context) {
 		return
 	}
 
+	hashedPassword := uh.PasswordHasher.HashPassword(cur.Password)
+
 	u := User{
 		Id:       uuid.NewString(),
 		Username: cur.Username,
 		Email:    cur.Email,
-		Password: cur.Password,
+		Password: hashedPassword,
 	}
 
 	if err := uh.Repo.Create(&u); err != nil {
@@ -69,7 +73,9 @@ func (uh *UserHandler) Login(ctx *gin.Context) {
 		return
 	}
 
-	if u.Password == lur.Password {
+	fmt.Println(uh.PasswordHasher.ComparePassword(lur.Password, u.Password))
+
+	if uh.PasswordHasher.ComparePassword(lur.Password, u.Password) {
 		tokenStr, err := uh.AuthProvider.GenerateToken(u.Id)
 		if err != nil {
 			ctx.JSON(http.StatusInternalServerError, common.InternalServerError())
@@ -116,17 +122,17 @@ func (uh *UserHandler) ChangePassword(ctx *gin.Context) {
 		return
 	}
 
-	if cpr.CurrentPassword != u.Password {
+	if !uh.PasswordHasher.ComparePassword(cpr.CurrentPassword, u.Password) {
 		ctx.JSON(http.StatusBadRequest, common.ErrorResponse{Message: "Current password does not match"})
 		return
 	}
 
-	if cpr.NewPassword == u.Password {
+	if cpr.NewPassword == cpr.CurrentPassword {
 		ctx.JSON(http.StatusBadRequest, common.ErrorResponse{Message: "New password and current password should not be the same"})
 		return
 	}
 
-	u.Password = cpr.NewPassword
+	u.Password = uh.PasswordHasher.HashPassword(cpr.NewPassword)
 
 	if err := uh.Repo.Update(&u); err != nil {
 		ctx.JSON(http.StatusInternalServerError, common.InternalServerError())

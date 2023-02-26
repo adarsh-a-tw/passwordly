@@ -19,7 +19,8 @@ func SetupRoutes(r *gin.Engine, db *gorm.DB) {
 		Repo: &UserRepositoryImpl{
 			db: db,
 		},
-		AuthProvider: &utils.AuthProviderImpl{},
+		AuthProvider:   &utils.AuthProviderImpl{},
+		PasswordHasher: &utils.PasswordHasherImpl{},
 	}
 
 	urg.POST("", uh.Create)

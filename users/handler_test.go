@@ -24,7 +24,6 @@ func init() {
 }
 
 func TestUserHandler_Create_ShouldCreateUserSuccessfully(t *testing.T) {
-
 	cur := users.CreateUserRequest{
 		Username: "mock_username",
 		Password: "P@ssword123",
@@ -34,15 +33,17 @@ func TestUserHandler_Create_ShouldCreateUserSuccessfully(t *testing.T) {
 	ctx, rec := prepareContextAndResponseRecorder(t, "/api/v1/users", "POST", cur)
 
 	repo := &user_mocks.UserRepository{}
-	ap := &utils_mocks.AuthProvider{}
+	hasher := &utils_mocks.PasswordHasher{}
 
 	repo.On("UsernameAlreadyExists", "mock_username").Return(false, nil)
 	repo.On("EmailAlreadyExists", "test@email.com").Return(false, nil)
 	repo.On("Create", mock.AnythingOfType("*users.User")).Return(nil)
 
+	hasher.On("HashPassword", "P@ssword123").Return("HashedPassword")
+
 	uh := users.UserHandler{
-		Repo:         repo,
-		AuthProvider: ap,
+		Repo:           repo,
+		PasswordHasher: hasher,
 	}
 
 	uh.Create(ctx)
@@ -53,6 +54,8 @@ func TestUserHandler_Create_ShouldCreateUserSuccessfully(t *testing.T) {
 	repo.AssertCalled(t, "UsernameAlreadyExists", "mock_username")
 	repo.AssertCalled(t, "EmailAlreadyExists", "test@email.com")
 	repo.AssertCalled(t, "Create", mock.AnythingOfType("*users.User"))
+
+	hasher.AssertCalled(t, "HashPassword", "P@ssword123")
 
 	assert.Equal(t, http.StatusCreated, rec.Code)
 	assert.Equal(t, cur.Username, actualResponse.Username)
@@ -70,13 +73,11 @@ func TestUserHandler_Create_ShouldNotCreateUserWithAlreadyExistingUsername(t *te
 	ctx, rec := prepareContextAndResponseRecorder(t, "/api/v1/users", "POST", cur)
 
 	repo := &user_mocks.UserRepository{}
-	ap := &utils_mocks.AuthProvider{}
 
 	repo.On("UsernameAlreadyExists", "mock_username").Return(true, nil)
 
 	uh := users.UserHandler{
-		Repo:         repo,
-		AuthProvider: ap,
+		Repo: repo,
 	}
 
 	uh.Create(ctx)
@@ -101,14 +102,12 @@ func TestUserHandler_Create_ShouldNotCreateUserWithAlreadyExistingEmail(t *testi
 	ctx, rec := prepareContextAndResponseRecorder(t, "/api/v1/users", "POST", cur)
 
 	repo := &user_mocks.UserRepository{}
-	ap := &utils_mocks.AuthProvider{}
 
 	repo.On("UsernameAlreadyExists", "mock_username").Return(false, nil)
 	repo.On("EmailAlreadyExists", "test@email.com").Return(true, nil)
 
 	uh := users.UserHandler{
-		Repo:         repo,
-		AuthProvider: ap,
+		Repo: repo,
 	}
 
 	uh.Create(ctx)
@@ -129,11 +128,9 @@ func TestUserHandler_Create_ShouldNotCreateUserWithInvalidRequestBody(t *testing
 	ctx, rec := prepareContextAndResponseRecorder(t, "/api/v1/users", "POST", nil)
 
 	repo := &user_mocks.UserRepository{}
-	ap := &utils_mocks.AuthProvider{}
 
 	uh := users.UserHandler{
-		Repo:         repo,
-		AuthProvider: ap,
+		Repo: repo,
 	}
 
 	uh.Create(ctx)
@@ -156,13 +153,11 @@ func TestUserHandler_Create_ShouldThrowInternalServerErrorIfUsernameAlreadyExist
 	ctx, rec := prepareContextAndResponseRecorder(t, "/api/v1/users", "POST", cur)
 
 	repo := &user_mocks.UserRepository{}
-	ap := &utils_mocks.AuthProvider{}
 
 	repo.On("UsernameAlreadyExists", "mock_username").Return(false, errors.New("MOCK_ERROR"))
 
 	uh := users.UserHandler{
-		Repo:         repo,
-		AuthProvider: ap,
+		Repo: repo,
 	}
 
 	uh.Create(ctx)
@@ -187,14 +182,12 @@ func TestUserHandler_Create_ShouldThrowInternalServerErrorIfEmailAlreadyExistsMe
 	ctx, rec := prepareContextAndResponseRecorder(t, "/api/v1/users", "POST", cur)
 
 	repo := &user_mocks.UserRepository{}
-	ap := &utils_mocks.AuthProvider{}
 
 	repo.On("UsernameAlreadyExists", "mock_username").Return(false, nil)
 	repo.On("EmailAlreadyExists", "test@email.com").Return(false, errors.New("MOCK_ERROR"))
 
 	uh := users.UserHandler{
-		Repo:         repo,
-		AuthProvider: ap,
+		Repo: repo,
 	}
 
 	uh.Create(ctx)
@@ -220,15 +213,17 @@ func TestUserHandler_Create_ShouldThrowInternalServerErrorIfCreateMethodFails(t 
 	ctx, rec := prepareContextAndResponseRecorder(t, "/api/v1/users", "POST", cur)
 
 	repo := &user_mocks.UserRepository{}
-	ap := &utils_mocks.AuthProvider{}
+	hasher := &utils_mocks.PasswordHasher{}
 
 	repo.On("UsernameAlreadyExists", "mock_username").Return(false, nil)
 	repo.On("EmailAlreadyExists", "test@email.com").Return(false, nil)
 	repo.On("Create", mock.AnythingOfType("*users.User")).Return(errors.New("MOCK_ERROR"))
 
+	hasher.On("HashPassword", "P@ssword123").Return("HashedPassword")
+
 	uh := users.UserHandler{
-		Repo:         repo,
-		AuthProvider: ap,
+		Repo:           repo,
+		PasswordHasher: hasher,
 	}
 
 	uh.Create(ctx)
@@ -239,6 +234,8 @@ func TestUserHandler_Create_ShouldThrowInternalServerErrorIfCreateMethodFails(t 
 	repo.AssertCalled(t, "UsernameAlreadyExists", "mock_username")
 	repo.AssertCalled(t, "EmailAlreadyExists", "test@email.com")
 	repo.AssertCalled(t, "Create", mock.AnythingOfType("*users.User"))
+
+	hasher.AssertCalled(t, "HashPassword", "P@ssword123")
 
 	assert.Equal(t, http.StatusInternalServerError, rec.Code)
 	assert.Equal(t, expectedResponse, actualResponse)
@@ -257,6 +254,7 @@ func TestUserHandler_Login_ShouldLoginUserSuccessfully(t *testing.T) {
 
 	repo := &user_mocks.UserRepository{}
 	ap := &utils_mocks.AuthProvider{}
+	hasher := &utils_mocks.PasswordHasher{}
 
 	repo.On("Find", "mock_username", mock.AnythingOfType("*users.User")).Return(nil).Run(func(args mock.Arguments) {
 		arg := args.Get(1).(*users.User)
@@ -264,13 +262,15 @@ func TestUserHandler_Login_ShouldLoginUserSuccessfully(t *testing.T) {
 		arg.Id = mu.Id
 		arg.Username = mu.Username
 		arg.Email = mu.Email
-		arg.Password = mu.Password
+		arg.Password = "HashedPassword"
 	})
 	ap.On("GenerateToken", "mock_id").Return(mockAPIToken, nil).Once()
+	hasher.On("ComparePassword", "mockPassword@123", "HashedPassword").Return(true)
 
 	uh := users.UserHandler{
-		Repo:         repo,
-		AuthProvider: ap,
+		Repo:           repo,
+		AuthProvider:   ap,
+		PasswordHasher: hasher,
 	}
 
 	uh.Login(ctx)
@@ -280,6 +280,7 @@ func TestUserHandler_Login_ShouldLoginUserSuccessfully(t *testing.T) {
 
 	repo.AssertCalled(t, "Find", "mock_username", mock.AnythingOfType("*users.User"))
 	ap.AssertCalled(t, "GenerateToken", "mock_id")
+	hasher.AssertCalled(t, "ComparePassword", "mockPassword@123", "HashedPassword")
 
 	assert.Equal(t, http.StatusOK, rec.Code)
 	assert.Equal(t, expectedResponse, actualResponse)
@@ -298,6 +299,7 @@ func TestUserHandler_Login_ShouldThrowErrorForInternalServerError(t *testing.T) 
 
 	repo := &user_mocks.UserRepository{}
 	ap := &utils_mocks.AuthProvider{}
+	hasher := &utils_mocks.PasswordHasher{}
 
 	repo.On("Find", "mock_username", mock.AnythingOfType("*users.User")).Return(nil).Run(func(args mock.Arguments) {
 		arg := args.Get(1).(*users.User)
@@ -305,15 +307,17 @@ func TestUserHandler_Login_ShouldThrowErrorForInternalServerError(t *testing.T) 
 		arg.Id = mu.Id
 		arg.Username = mu.Username
 		arg.Email = mu.Email
-		arg.Password = mu.Password
+		arg.Password = "HashedPassword"
 	})
 	ap.On("GenerateToken", "mock_id").Return(mockAPIToken, nil).Return(
 		"", errors.New("Something went wrong. Try again."),
 	)
+	hasher.On("ComparePassword", "mockPassword@123", "HashedPassword").Return(true)
 
 	uh := users.UserHandler{
-		Repo:         repo,
-		AuthProvider: ap,
+		Repo:           repo,
+		AuthProvider:   ap,
+		PasswordHasher: hasher,
 	}
 
 	uh.Login(ctx)
@@ -323,6 +327,7 @@ func TestUserHandler_Login_ShouldThrowErrorForInternalServerError(t *testing.T) 
 
 	repo.AssertCalled(t, "Find", "mock_username", mock.AnythingOfType("*users.User"))
 	ap.AssertCalled(t, "GenerateToken", "mock_id")
+	hasher.AssertCalled(t, "ComparePassword", "mockPassword@123", "HashedPassword")
 
 	assert.Equal(t, http.StatusInternalServerError, rec.Code)
 	assert.Equal(t, expectedResponse, actualResponse)
@@ -333,13 +338,13 @@ func TestUserHandler_Login_ShouldThrowErrorForInvalidPassword(t *testing.T) {
 
 	lur := users.LoginUserRequest{
 		Username: "mock_username",
-		Password: "mockPassword@1234",
+		Password: "mockPassword@123",
 	}
 
 	ctx, rec := prepareContextAndResponseRecorder(t, "/api/v1/users/login", "POST", lur)
 
 	repo := &user_mocks.UserRepository{}
-	ap := &utils_mocks.AuthProvider{}
+	hasher := &utils_mocks.PasswordHasher{}
 
 	repo.On("Find", "mock_username", mock.AnythingOfType("*users.User")).Return(nil).Run(func(args mock.Arguments) {
 		arg := args.Get(1).(*users.User)
@@ -347,12 +352,13 @@ func TestUserHandler_Login_ShouldThrowErrorForInvalidPassword(t *testing.T) {
 		arg.Id = mu.Id
 		arg.Username = mu.Username
 		arg.Email = mu.Email
-		arg.Password = mu.Password
+		arg.Password = "HashedPassword"
 	})
+	hasher.On("ComparePassword", "mockPassword@123", "HashedPassword").Return(false)
 
 	uh := users.UserHandler{
-		Repo:         repo,
-		AuthProvider: ap,
+		Repo:           repo,
+		PasswordHasher: hasher,
 	}
 
 	uh.Login(ctx)
@@ -361,6 +367,7 @@ func TestUserHandler_Login_ShouldThrowErrorForInvalidPassword(t *testing.T) {
 	decodeJSONResponse(t, rec, &actualResponse)
 
 	repo.AssertCalled(t, "Find", "mock_username", mock.AnythingOfType("*users.User"))
+	hasher.AssertCalled(t, "ComparePassword", "mockPassword@123", "HashedPassword")
 
 	assert.Equal(t, http.StatusBadRequest, rec.Code)
 	assert.Equal(t, expectedResponse, actualResponse)
@@ -377,15 +384,13 @@ func TestUserHandler_Login_ShouldThrowErrorForInvalidUsername(t *testing.T) {
 	ctx, rec := prepareContextAndResponseRecorder(t, "/api/v1/users/login", "POST", lur)
 
 	repo := &user_mocks.UserRepository{}
-	ap := &utils_mocks.AuthProvider{}
 
 	repo.On("Find", "mock_username", mock.AnythingOfType("*users.User")).Return(
 		errors.New("Cannot find user with given username"),
 	)
 
 	uh := users.UserHandler{
-		Repo:         repo,
-		AuthProvider: ap,
+		Repo: repo,
 	}
 
 	uh.Login(ctx)
@@ -404,13 +409,7 @@ func TestUserHandler_Login_ShouldThrowErrorForInvalidRequestBody(t *testing.T) {
 
 	ctx, rec := prepareContextAndResponseRecorder(t, "/api/v1/users/login", "POST", nil)
 
-	repo := &user_mocks.UserRepository{}
-	ap := &utils_mocks.AuthProvider{}
-
-	uh := users.UserHandler{
-		Repo:         repo,
-		AuthProvider: ap,
-	}
+	uh := users.UserHandler{}
 
 	uh.Login(ctx)
 
@@ -427,7 +426,6 @@ func TestUserHandler_FetchUser_ShouldFetchUserDetailsSuccessfully(t *testing.T) 
 	ctx, rec := prepareContextAndResponseRecorder(t, "/api/v1/users/me", "GET", nil)
 
 	repo := &user_mocks.UserRepository{}
-	ap := &utils_mocks.AuthProvider{}
 
 	repo.On("FindById", "mock_id", mock.AnythingOfType("*users.User")).Return(nil).Run(func(args mock.Arguments) {
 		arg := args.Get(1).(*users.User)
@@ -442,8 +440,7 @@ func TestUserHandler_FetchUser_ShouldFetchUserDetailsSuccessfully(t *testing.T) 
 	ctx.Set("user_id", "mock_id")
 
 	uh := users.UserHandler{
-		Repo:         repo,
-		AuthProvider: ap,
+		Repo: repo,
 	}
 
 	uh.FetchUser(ctx)
@@ -463,7 +460,6 @@ func TestUserHandler_Login_ShouldThrowErrorForInvalidId(t *testing.T) {
 	ctx, rec := prepareContextAndResponseRecorder(t, "/api/v1/users/me", "GET", nil)
 
 	repo := &user_mocks.UserRepository{}
-	ap := &utils_mocks.AuthProvider{}
 
 	repo.On("FindById", "invalid_id", mock.AnythingOfType("*users.User")).Return(
 		errors.New("Cannot find user with given username"),
@@ -473,8 +469,7 @@ func TestUserHandler_Login_ShouldThrowErrorForInvalidId(t *testing.T) {
 	ctx.Set("user_id", "invalid_id")
 
 	uh := users.UserHandler{
-		Repo:         repo,
-		AuthProvider: ap,
+		Repo: repo,
 	}
 
 	uh.FetchUser(ctx)
@@ -497,7 +492,7 @@ func TestUserHandler_ChangePassword_ShouldChangePasswordSuccessfully(t *testing.
 	ctx, rec := prepareContextAndResponseRecorder(t, "/api/v1/users/me/password", "PATCH", cpr)
 
 	repo := &user_mocks.UserRepository{}
-	ap := &utils_mocks.AuthProvider{}
+	hasher := &utils_mocks.PasswordHasher{}
 
 	repo.On("FindById", "mock_id", mock.AnythingOfType("*users.User")).Return(nil).Run(func(args mock.Arguments) {
 		arg := args.Get(1).(*users.User)
@@ -505,23 +500,28 @@ func TestUserHandler_ChangePassword_ShouldChangePasswordSuccessfully(t *testing.
 		arg.Id = mu.Id
 		arg.Username = mu.Username
 		arg.Email = mu.Email
-		arg.Password = mu.Password
+		arg.Password = "HashedPassword"
 	})
 
 	repo.On("Update", mock.AnythingOfType("*users.User")).Return(nil)
+	hasher.On("ComparePassword", "mockPassword@123", "HashedPassword").Return(true)
+	hasher.On("HashPassword", "mockPassword@1234").Return("HashedPassword2")
 
 	// Mocking TokenAuthMiddleware
 	ctx.Set("user_id", "mock_id")
 
 	uh := users.UserHandler{
-		Repo:         repo,
-		AuthProvider: ap,
+		Repo:           repo,
+		PasswordHasher: hasher,
 	}
 
 	uh.ChangePassword(ctx)
 
 	repo.AssertCalled(t, "FindById", "mock_id", mock.AnythingOfType("*users.User"))
 	repo.AssertCalled(t, "Update", mock.AnythingOfType("*users.User"))
+
+	hasher.AssertCalled(t, "ComparePassword", "mockPassword@123", "HashedPassword")
+	hasher.AssertCalled(t, "HashPassword", "mockPassword@1234")
 
 	assert.Equal(t, http.StatusOK, rec.Code)
 }
@@ -536,7 +536,7 @@ func TestUserHandler_ChangePassword_ShouldThrowErrorIfCurrentPasswordInvalid(t *
 	ctx, rec := prepareContextAndResponseRecorder(t, "/api/v1/users/me/password", "PATCH", cpr)
 
 	repo := &user_mocks.UserRepository{}
-	ap := &utils_mocks.AuthProvider{}
+	hasher := &utils_mocks.PasswordHasher{}
 
 	repo.On("FindById", "mock_id", mock.AnythingOfType("*users.User")).Return(nil).Run(func(args mock.Arguments) {
 		arg := args.Get(1).(*users.User)
@@ -544,15 +544,16 @@ func TestUserHandler_ChangePassword_ShouldThrowErrorIfCurrentPasswordInvalid(t *
 		arg.Id = mu.Id
 		arg.Username = mu.Username
 		arg.Email = mu.Email
-		arg.Password = mu.Password
+		arg.Password = "HashedPassword"
 	})
+	hasher.On("ComparePassword", "wrongPassword", "HashedPassword").Return(false)
 
 	// Mocking TokenAuthMiddleware
 	ctx.Set("user_id", "mock_id")
 
 	uh := users.UserHandler{
-		Repo:         repo,
-		AuthProvider: ap,
+		Repo:           repo,
+		PasswordHasher: hasher,
 	}
 
 	uh.ChangePassword(ctx)
@@ -561,6 +562,8 @@ func TestUserHandler_ChangePassword_ShouldThrowErrorIfCurrentPasswordInvalid(t *
 	decodeJSONResponse(t, rec, &actualResponse)
 
 	repo.AssertCalled(t, "FindById", "mock_id", mock.AnythingOfType("*users.User"))
+
+	hasher.AssertCalled(t, "ComparePassword", "wrongPassword", "HashedPassword")
 
 	assert.Equal(t, http.StatusBadRequest, rec.Code)
 	assert.Equal(t, expectedResponse, actualResponse)
@@ -576,7 +579,7 @@ func TestUserHandler_ChangePassword_ShouldThrowErrorIfCurrentPasswordAndNewPassw
 	ctx, rec := prepareContextAndResponseRecorder(t, "/api/v1/users/me/password", "PATCH", cpr)
 
 	repo := &user_mocks.UserRepository{}
-	ap := &utils_mocks.AuthProvider{}
+	hasher := &utils_mocks.PasswordHasher{}
 
 	repo.On("FindById", "mock_id", mock.AnythingOfType("*users.User")).Return(nil).Run(func(args mock.Arguments) {
 		arg := args.Get(1).(*users.User)
@@ -584,15 +587,16 @@ func TestUserHandler_ChangePassword_ShouldThrowErrorIfCurrentPasswordAndNewPassw
 		arg.Id = mu.Id
 		arg.Username = mu.Username
 		arg.Email = mu.Email
-		arg.Password = mu.Password
+		arg.Password = "HashedPassword"
 	})
+	hasher.On("ComparePassword", "mockPassword@123", "HashedPassword").Return(true)
 
 	// Mocking TokenAuthMiddleware
 	ctx.Set("user_id", "mock_id")
 
 	uh := users.UserHandler{
-		Repo:         repo,
-		AuthProvider: ap,
+		Repo:           repo,
+		PasswordHasher: hasher,
 	}
 
 	uh.ChangePassword(ctx)
@@ -601,6 +605,8 @@ func TestUserHandler_ChangePassword_ShouldThrowErrorIfCurrentPasswordAndNewPassw
 	decodeJSONResponse(t, rec, &actualResponse)
 
 	repo.AssertCalled(t, "FindById", "mock_id", mock.AnythingOfType("*users.User"))
+
+	hasher.AssertCalled(t, "ComparePassword", "mockPassword@123", "HashedPassword")
 
 	assert.Equal(t, http.StatusBadRequest, rec.Code)
 	assert.Equal(t, expectedResponse, actualResponse)
@@ -611,13 +617,7 @@ func TestUserHandler_ChangePassword_ShouldThrowErrorForInvalidBody(t *testing.T)
 
 	ctx, rec := prepareContextAndResponseRecorder(t, "/api/v1/users/me/password", "PATCH", nil)
 
-	repo := &user_mocks.UserRepository{}
-	ap := &utils_mocks.AuthProvider{}
-
-	uh := users.UserHandler{
-		Repo:         repo,
-		AuthProvider: ap,
-	}
+	uh := users.UserHandler{}
 
 	uh.ChangePassword(ctx)
 
@@ -638,7 +638,6 @@ func TestUserHandler_ChangePassword_ShouldThrowErrorForInvalidUserId(t *testing.
 	ctx, rec := prepareContextAndResponseRecorder(t, "/api/v1/users/me/password", "PATCH", cpr)
 
 	repo := &user_mocks.UserRepository{}
-	ap := &utils_mocks.AuthProvider{}
 
 	repo.On("FindById", "invalid_id", mock.AnythingOfType("*users.User")).Return(
 		errors.New("Cannot find user with given username"),
@@ -648,8 +647,7 @@ func TestUserHandler_ChangePassword_ShouldThrowErrorForInvalidUserId(t *testing.
 	ctx.Set("user_id", "invalid_id")
 
 	uh := users.UserHandler{
-		Repo:         repo,
-		AuthProvider: ap,
+		Repo: repo,
 	}
 
 	uh.ChangePassword(ctx)
@@ -673,7 +671,7 @@ func TestUserHandler_ChangePassword_ShouldThrowErrorForUpdateFailure(t *testing.
 	ctx, rec := prepareContextAndResponseRecorder(t, "/api/v1/users/me/password", "PATCH", cpr)
 
 	repo := &user_mocks.UserRepository{}
-	ap := &utils_mocks.AuthProvider{}
+	hasher := &utils_mocks.PasswordHasher{}
 
 	repo.On("FindById", "mock_id", mock.AnythingOfType("*users.User")).Return(nil).Run(func(args mock.Arguments) {
 		arg := args.Get(1).(*users.User)
@@ -681,17 +679,19 @@ func TestUserHandler_ChangePassword_ShouldThrowErrorForUpdateFailure(t *testing.
 		arg.Id = mu.Id
 		arg.Username = mu.Username
 		arg.Email = mu.Email
-		arg.Password = mu.Password
+		arg.Password = "HashedPassword"
 	})
 
 	repo.On("Update", mock.AnythingOfType("*users.User")).Return(errors.New("Mock Error"))
+	hasher.On("ComparePassword", "mockPassword@123", "HashedPassword").Return(true)
+	hasher.On("HashPassword", "mockPassword@1234").Return("HashedPassword2")
 
 	// Mocking TokenAuthMiddleware
 	ctx.Set("user_id", "mock_id")
 
 	uh := users.UserHandler{
-		Repo:         repo,
-		AuthProvider: ap,
+		Repo:           repo,
+		PasswordHasher: hasher,
 	}
 
 	uh.ChangePassword(ctx)
@@ -701,6 +701,8 @@ func TestUserHandler_ChangePassword_ShouldThrowErrorForUpdateFailure(t *testing.
 
 	repo.AssertCalled(t, "FindById", "mock_id", mock.AnythingOfType("*users.User"))
 	repo.AssertCalled(t, "Update", mock.AnythingOfType("*users.User"))
+	hasher.AssertCalled(t, "ComparePassword", "mockPassword@123", "HashedPassword")
+	hasher.AssertCalled(t, "HashPassword", "mockPassword@1234")
 
 	assert.Equal(t, http.StatusInternalServerError, rec.Code)
 	assert.Equal(t, expectedResponse, actualResponse)
