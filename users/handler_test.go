@@ -23,6 +23,227 @@ func init() {
 	user_mocks.RegisterMockValidations()
 }
 
+func TestUserHandler_Create_ShouldCreateUserSuccessfully(t *testing.T) {
+
+	cur := users.CreateUserRequest{
+		Username: "mock_username",
+		Password: "P@ssword123",
+		Email:    "test@email.com",
+	}
+
+	ctx, rec := prepareContextAndResponseRecorder(t, "/api/v1/users", "POST", cur)
+
+	repo := &user_mocks.UserRepository{}
+	ap := &utils_mocks.AuthProvider{}
+
+	repo.On("UsernameAlreadyExists", "mock_username").Return(false, nil)
+	repo.On("EmailAlreadyExists", "test@email.com").Return(false, nil)
+	repo.On("Create", mock.AnythingOfType("*users.User")).Return(nil)
+
+	uh := users.UserHandler{
+		Repo:         repo,
+		AuthProvider: ap,
+	}
+
+	uh.Create(ctx)
+
+	var actualResponse users.UserResponse
+	decodeJSONResponse(t, rec, &actualResponse)
+
+	repo.AssertCalled(t, "UsernameAlreadyExists", "mock_username")
+	repo.AssertCalled(t, "EmailAlreadyExists", "test@email.com")
+	repo.AssertCalled(t, "Create", mock.AnythingOfType("*users.User"))
+
+	assert.Equal(t, http.StatusCreated, rec.Code)
+	assert.Equal(t, cur.Username, actualResponse.Username)
+	assert.Equal(t, cur.Email, actualResponse.Email)
+}
+
+func TestUserHandler_Create_ShouldNotCreateUserWithAlreadyExistingUsername(t *testing.T) {
+	expectedResponse := common.ErrorResponse{Message: "Username already exists. Try another."}
+	cur := users.CreateUserRequest{
+		Username: "mock_username",
+		Password: "P@ssword123",
+		Email:    "test@email.com",
+	}
+
+	ctx, rec := prepareContextAndResponseRecorder(t, "/api/v1/users", "POST", cur)
+
+	repo := &user_mocks.UserRepository{}
+	ap := &utils_mocks.AuthProvider{}
+
+	repo.On("UsernameAlreadyExists", "mock_username").Return(true, nil)
+
+	uh := users.UserHandler{
+		Repo:         repo,
+		AuthProvider: ap,
+	}
+
+	uh.Create(ctx)
+
+	var actualResponse common.ErrorResponse
+	decodeJSONResponse(t, rec, &actualResponse)
+
+	repo.AssertCalled(t, "UsernameAlreadyExists", "mock_username")
+
+	assert.Equal(t, http.StatusBadRequest, rec.Code)
+	assert.Equal(t, expectedResponse, actualResponse)
+}
+
+func TestUserHandler_Create_ShouldNotCreateUserWithAlreadyExistingEmail(t *testing.T) {
+	expectedResponse := common.ErrorResponse{Message: "Email already exists. Try another."}
+	cur := users.CreateUserRequest{
+		Username: "mock_username",
+		Password: "P@ssword123",
+		Email:    "test@email.com",
+	}
+
+	ctx, rec := prepareContextAndResponseRecorder(t, "/api/v1/users", "POST", cur)
+
+	repo := &user_mocks.UserRepository{}
+	ap := &utils_mocks.AuthProvider{}
+
+	repo.On("UsernameAlreadyExists", "mock_username").Return(false, nil)
+	repo.On("EmailAlreadyExists", "test@email.com").Return(true, nil)
+
+	uh := users.UserHandler{
+		Repo:         repo,
+		AuthProvider: ap,
+	}
+
+	uh.Create(ctx)
+
+	var actualResponse common.ErrorResponse
+	decodeJSONResponse(t, rec, &actualResponse)
+
+	repo.AssertCalled(t, "UsernameAlreadyExists", "mock_username")
+	repo.AssertCalled(t, "EmailAlreadyExists", "test@email.com")
+
+	assert.Equal(t, http.StatusBadRequest, rec.Code)
+	assert.Equal(t, expectedResponse, actualResponse)
+}
+
+func TestUserHandler_Create_ShouldNotCreateUserWithInvalidRequestBody(t *testing.T) {
+	expectedResponse := common.ErrorResponse{Message: "Invalid Request body"}
+
+	ctx, rec := prepareContextAndResponseRecorder(t, "/api/v1/users", "POST", nil)
+
+	repo := &user_mocks.UserRepository{}
+	ap := &utils_mocks.AuthProvider{}
+
+	uh := users.UserHandler{
+		Repo:         repo,
+		AuthProvider: ap,
+	}
+
+	uh.Create(ctx)
+
+	var actualResponse common.ErrorResponse
+	decodeJSONResponse(t, rec, &actualResponse)
+
+	assert.Equal(t, http.StatusBadRequest, rec.Code)
+	assert.Equal(t, expectedResponse, actualResponse)
+}
+
+func TestUserHandler_Create_ShouldThrowInternalServerErrorIfUsernameAlreadyExistsMethodFails(t *testing.T) {
+	expectedResponse := common.ErrorResponse{Message: "Something went wrong. Try again."}
+	cur := users.CreateUserRequest{
+		Username: "mock_username",
+		Password: "P@ssword123",
+		Email:    "test@email.com",
+	}
+
+	ctx, rec := prepareContextAndResponseRecorder(t, "/api/v1/users", "POST", cur)
+
+	repo := &user_mocks.UserRepository{}
+	ap := &utils_mocks.AuthProvider{}
+
+	repo.On("UsernameAlreadyExists", "mock_username").Return(false, errors.New("MOCK_ERROR"))
+
+	uh := users.UserHandler{
+		Repo:         repo,
+		AuthProvider: ap,
+	}
+
+	uh.Create(ctx)
+
+	var actualResponse common.ErrorResponse
+	decodeJSONResponse(t, rec, &actualResponse)
+
+	repo.AssertCalled(t, "UsernameAlreadyExists", "mock_username")
+
+	assert.Equal(t, http.StatusInternalServerError, rec.Code)
+	assert.Equal(t, expectedResponse, actualResponse)
+}
+
+func TestUserHandler_Create_ShouldThrowInternalServerErrorIfEmailAlreadyExistsMethodFails(t *testing.T) {
+	expectedResponse := common.ErrorResponse{Message: "Something went wrong. Try again."}
+	cur := users.CreateUserRequest{
+		Username: "mock_username",
+		Password: "P@ssword123",
+		Email:    "test@email.com",
+	}
+
+	ctx, rec := prepareContextAndResponseRecorder(t, "/api/v1/users", "POST", cur)
+
+	repo := &user_mocks.UserRepository{}
+	ap := &utils_mocks.AuthProvider{}
+
+	repo.On("UsernameAlreadyExists", "mock_username").Return(false, nil)
+	repo.On("EmailAlreadyExists", "test@email.com").Return(false, errors.New("MOCK_ERROR"))
+
+	uh := users.UserHandler{
+		Repo:         repo,
+		AuthProvider: ap,
+	}
+
+	uh.Create(ctx)
+
+	var actualResponse common.ErrorResponse
+	decodeJSONResponse(t, rec, &actualResponse)
+
+	repo.AssertCalled(t, "UsernameAlreadyExists", "mock_username")
+	repo.AssertCalled(t, "EmailAlreadyExists", "test@email.com")
+
+	assert.Equal(t, http.StatusInternalServerError, rec.Code)
+	assert.Equal(t, expectedResponse, actualResponse)
+}
+
+func TestUserHandler_Create_ShouldThrowInternalServerErrorIfCreateMethodFails(t *testing.T) {
+	expectedResponse := common.ErrorResponse{Message: "Something went wrong. Try again."}
+	cur := users.CreateUserRequest{
+		Username: "mock_username",
+		Password: "P@ssword123",
+		Email:    "test@email.com",
+	}
+
+	ctx, rec := prepareContextAndResponseRecorder(t, "/api/v1/users", "POST", cur)
+
+	repo := &user_mocks.UserRepository{}
+	ap := &utils_mocks.AuthProvider{}
+
+	repo.On("UsernameAlreadyExists", "mock_username").Return(false, nil)
+	repo.On("EmailAlreadyExists", "test@email.com").Return(false, nil)
+	repo.On("Create", mock.AnythingOfType("*users.User")).Return(errors.New("MOCK_ERROR"))
+
+	uh := users.UserHandler{
+		Repo:         repo,
+		AuthProvider: ap,
+	}
+
+	uh.Create(ctx)
+
+	var actualResponse common.ErrorResponse
+	decodeJSONResponse(t, rec, &actualResponse)
+
+	repo.AssertCalled(t, "UsernameAlreadyExists", "mock_username")
+	repo.AssertCalled(t, "EmailAlreadyExists", "test@email.com")
+	repo.AssertCalled(t, "Create", mock.AnythingOfType("*users.User"))
+
+	assert.Equal(t, http.StatusInternalServerError, rec.Code)
+	assert.Equal(t, expectedResponse, actualResponse)
+}
+
 func TestUserHandler_Login_ShouldLoginUserSuccessfully(t *testing.T) {
 	mockAPIToken := "MOCK_API_TOKEN"
 	expectedResponse := users.LoginUserSuccessResponse{Token: mockAPIToken}

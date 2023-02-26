@@ -9,6 +9,8 @@ type UserRepository interface {
 	Find(username string, u *User) error
 	FindById(id string, u *User) error
 	Update(u *User) error
+	UsernameAlreadyExists(username string) (bool, error)
+	EmailAlreadyExists(email string) (bool, error)
 }
 
 type UserRepositoryImpl struct {
@@ -29,4 +31,16 @@ func (ur *UserRepositoryImpl) FindById(id string, u *User) error {
 
 func (ur *UserRepositoryImpl) Update(u *User) error {
 	return ur.db.Save(u).Error
+}
+
+func (ur *UserRepositoryImpl) UsernameAlreadyExists(username string) (bool, error) {
+	var Exists bool
+	err := ur.db.Raw("SELECT true FROM users WHERE username = ? AND value = 0", username).Scan(&Exists).Error
+	return Exists, err
+}
+
+func (ur *UserRepositoryImpl) EmailAlreadyExists(email string) (bool, error) {
+	var Exists bool
+	err := ur.db.Raw("SELECT true FROM users WHERE email = ? AND value = 0", email).Scan(&Exists).Error
+	return Exists, err
 }

@@ -17,7 +17,23 @@ type UserHandler struct {
 func (uh *UserHandler) Create(ctx *gin.Context) {
 	var cur CreateUserRequest
 	if err := ctx.ShouldBindJSON(&cur); err != nil {
-		ctx.JSON(http.StatusBadRequest, common.ErrorResponse{Message: "Invalid request body" + err.Error()})
+		ctx.JSON(http.StatusBadRequest, common.ErrorResponse{Message: "Invalid Request body"})
+		return
+	}
+
+	if exists, err := uh.Repo.UsernameAlreadyExists(cur.Username); exists {
+		ctx.JSON(http.StatusBadRequest, common.ErrorResponse{Message: "Username already exists. Try another."})
+		return
+	} else if err != nil {
+		ctx.JSON(http.StatusInternalServerError, common.InternalServerError())
+		return
+	}
+
+	if exists, err := uh.Repo.EmailAlreadyExists(cur.Email); exists {
+		ctx.JSON(http.StatusBadRequest, common.ErrorResponse{Message: "Email already exists. Try another."})
+		return
+	} else if err != nil {
+		ctx.JSON(http.StatusInternalServerError, common.InternalServerError())
 		return
 	}
 

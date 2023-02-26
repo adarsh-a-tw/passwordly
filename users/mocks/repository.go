@@ -26,6 +26,30 @@ func (_m *UserRepository) Create(u *users.User) error {
 	return r0
 }
 
+// EmailAlreadyExists provides a mock function with given fields: email
+func (_m *UserRepository) EmailAlreadyExists(email string) (bool, error) {
+	ret := _m.Called(email)
+
+	var r0 bool
+	var r1 error
+	if rf, ok := ret.Get(0).(func(string) (bool, error)); ok {
+		return rf(email)
+	}
+	if rf, ok := ret.Get(0).(func(string) bool); ok {
+		r0 = rf(email)
+	} else {
+		r0 = ret.Get(0).(bool)
+	}
+
+	if rf, ok := ret.Get(1).(func(string) error); ok {
+		r1 = rf(email)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // Find provides a mock function with given fields: username, u
 func (_m *UserRepository) Find(username string, u *users.User) error {
 	ret := _m.Called(username, u)
@@ -66,6 +90,30 @@ func (_m *UserRepository) Update(u *users.User) error {
 	}
 
 	return r0
+}
+
+// UsernameAlreadyExists provides a mock function with given fields: username
+func (_m *UserRepository) UsernameAlreadyExists(username string) (bool, error) {
+	ret := _m.Called(username)
+
+	var r0 bool
+	var r1 error
+	if rf, ok := ret.Get(0).(func(string) (bool, error)); ok {
+		return rf(username)
+	}
+	if rf, ok := ret.Get(0).(func(string) bool); ok {
+		r0 = rf(username)
+	} else {
+		r0 = ret.Get(0).(bool)
+	}
+
+	if rf, ok := ret.Get(1).(func(string) error); ok {
+		r1 = rf(username)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
 }
 
 type mockConstructorTestingTNewUserRepository interface {
