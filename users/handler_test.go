@@ -708,6 +708,137 @@ func TestUserHandler_ChangePassword_ShouldThrowErrorForUpdateFailure(t *testing.
 	assert.Equal(t, expectedResponse, actualResponse)
 }
 
+func TestUserHandler_UpdateUserDetails_ShouldUpdateUserSuccessfully(t *testing.T) {
+	uurs := []users.UpdateUserRequest{
+		{
+			Email: "test-update@email.com",
+		},
+		{
+			Username: "test-update-username",
+		},
+	}
+
+	repo := &user_mocks.UserRepository{}
+	ap := &utils_mocks.AuthProvider{}
+	uh := users.UserHandler{
+		Repo:         repo,
+		AuthProvider: ap,
+	}
+
+	repo.On("FindById", "mock_id", mock.AnythingOfType("*users.User")).Return(nil).Run(func(args mock.Arguments) {
+		arg := args.Get(1).(*users.User)
+		mu := mockUser()
+		arg.Id = mu.Id
+		arg.Username = mu.Username
+		arg.Email = mu.Email
+		arg.Password = mu.Password
+	})
+
+	repo.On("EmailAlreadyExists", mock.AnythingOfType("string")).Return(false, nil)
+	repo.On("UsernameAlreadyExists", mock.AnythingOfType("string")).Return(false, nil)
+
+	repo.On("Update", mock.AnythingOfType("*users.User")).Return(nil)
+
+	for _, uur := range uurs {
+		ctx, rec := prepareContextAndResponseRecorder(t, "/api/v1/users/me", "PATCH", uur)
+
+		// Mocking TokenAuthMiddleware
+		ctx.Set("user_id", "mock_id")
+
+		uh.UpdateUser(ctx)
+
+		repo.AssertCalled(t, "FindById", "mock_id", mock.AnythingOfType("*users.User"))
+		repo.AssertCalled(t, "EmailAlreadyExists", mock.AnythingOfType("string"))
+		repo.AssertCalled(t, "UsernameAlreadyExists", mock.AnythingOfType("string"))
+		repo.AssertCalled(t, "Update", mock.AnythingOfType("*users.User"))
+
+		assert.Equal(t, http.StatusOK, rec.Code)
+	}
+}
+
+func TestUserHandler_UpdateUserDetails_ShouldNotUpdateUserForExistingUsername(t *testing.T) {
+	uur := users.UpdateUserRequest{
+		Username: "test-update-username",
+	}
+
+	repo := &user_mocks.UserRepository{}
+	ap := &utils_mocks.AuthProvider{}
+	uh := users.UserHandler{
+		Repo:         repo,
+		AuthProvider: ap,
+	}
+
+	repo.On("FindById", "mock_id", mock.AnythingOfType("*users.User")).Return(nil).Run(func(args mock.Arguments) {
+		arg := args.Get(1).(*users.User)
+		mu := mockUser()
+		arg.Id = mu.Id
+		arg.Username = mu.Username
+		arg.Email = mu.Email
+		arg.Password = mu.Password
+	})
+
+	repo.On("UsernameAlreadyExists", mock.AnythingOfType("string")).Return(true, nil)
+
+	repo.On("Update", mock.AnythingOfType("*users.User")).Return(nil)
+
+	ctx, rec := prepareContextAndResponseRecorder(t, "/api/v1/users/me", "PATCH", uur)
+
+	// Mocking TokenAuthMiddleware
+	ctx.Set("user_id", "mock_id")
+
+	uh.UpdateUser(ctx)
+
+	repo.AssertCalled(t, "FindById", "mock_id", mock.AnythingOfType("*users.User"))
+	repo.AssertCalled(t, "UsernameAlreadyExists", mock.AnythingOfType("string"))
+	repo.AssertNotCalled(t, "EmailAlreadyExists")
+	repo.AssertNotCalled(t, "Update")
+
+	assert.Equal(t, http.StatusBadRequest, rec.Code)
+	assert.Contains(t, rec.Body.String(), "Username already exists. Try another.")
+}
+
+func TestUserHandler_UpdateUserDetails_ShouldNotUpdateUserForExistingEmail(t *testing.T) {
+	uur := users.UpdateUserRequest{
+		Email: "test-update@email.com",
+	}
+
+	repo := &user_mocks.UserRepository{}
+	ap := &utils_mocks.AuthProvider{}
+	uh := users.UserHandler{
+		Repo:         repo,
+		AuthProvider: ap,
+	}
+
+	repo.On("FindById", "mock_id", mock.AnythingOfType("*users.User")).Return(nil).Run(func(args mock.Arguments) {
+		arg := args.Get(1).(*users.User)
+		mu := mockUser()
+		arg.Id = mu.Id
+		arg.Username = mu.Username
+		arg.Email = mu.Email
+		arg.Password = mu.Password
+	})
+
+	repo.On("UsernameAlreadyExists", mock.AnythingOfType("string")).Return(false, nil)
+	repo.On("EmailAlreadyExists", mock.AnythingOfType("string")).Return(true, nil)
+
+	repo.On("Update", mock.AnythingOfType("*users.User")).Return(nil)
+
+	ctx, rec := prepareContextAndResponseRecorder(t, "/api/v1/users/me", "PATCH", uur)
+
+	// Mocking TokenAuthMiddleware
+	ctx.Set("user_id", "mock_id")
+
+	uh.UpdateUser(ctx)
+
+	repo.AssertCalled(t, "FindById", "mock_id", mock.AnythingOfType("*users.User"))
+	repo.AssertCalled(t, "UsernameAlreadyExists", mock.AnythingOfType("string"))
+	repo.AssertCalled(t, "EmailAlreadyExists", mock.AnythingOfType("string"))
+	repo.AssertNotCalled(t, "Update")
+
+	assert.Equal(t, http.StatusBadRequest, rec.Code)
+	assert.Contains(t, rec.Body.String(), "Email already exists. Try another.")
+}
+
 func mockUser() *users.User {
 	return &users.User{
 		Id:        "mock_id",

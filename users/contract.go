@@ -20,6 +20,11 @@ type ChangePasswordRequest struct {
 	NewPassword     string `json:"new_password" binding:"required,password"`
 }
 
+type UpdateUserRequest struct {
+	Username string `json:"username" binding:"required_without=Email,omitempty,username"`
+	Email    string `json:"email" binding:"required_without=Username,omitempty,email"`
+}
+
 type UserResponse struct {
 	Id       string `json:"id"`
 	Username string `json:"username"`

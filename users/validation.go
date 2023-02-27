@@ -9,7 +9,6 @@ import (
 )
 
 func validatePassword(fl validator.FieldLevel) bool {
-
 	password, ok := fl.Field().Interface().(string)
 	if !ok {
 		return false

@@ -141,3 +141,49 @@ func (uh *UserHandler) ChangePassword(ctx *gin.Context) {
 
 	ctx.JSON(http.StatusOK, nil)
 }
+
+func (uh *UserHandler) UpdateUser(ctx *gin.Context) {
+	id := ctx.GetString("user_id")
+	var uur UpdateUserRequest
+	if err := ctx.ShouldBindJSON(&uur); err != nil {
+		ctx.JSON(http.StatusBadRequest, common.ErrorResponse{Message: "Invalid Request body"})
+		return
+	}
+
+	var u User
+	if err := uh.Repo.FindById(id, &u); err != nil {
+		ctx.JSON(http.StatusInternalServerError, common.InternalServerError())
+		return
+	}
+
+	if exists, err := uh.Repo.UsernameAlreadyExists(uur.Username); exists {
+		ctx.JSON(http.StatusBadRequest, common.ErrorResponse{Message: "Username already exists. Try another."})
+		return
+	} else if err != nil {
+		ctx.JSON(http.StatusInternalServerError, common.InternalServerError())
+		return
+	}
+
+	if exists, err := uh.Repo.EmailAlreadyExists(uur.Email); exists {
+		ctx.JSON(http.StatusBadRequest, common.ErrorResponse{Message: "Email already exists. Try another."})
+		return
+	} else if err != nil {
+		ctx.JSON(http.StatusInternalServerError, common.InternalServerError())
+		return
+	}
+
+	if u.Username != "" {
+		u.Username = uur.Username
+	}
+	if u.Email != "" {
+		u.Email = uur.Email
+	}
+
+	err := uh.Repo.Update(&u)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, common.InternalServerError())
+		return
+	}
+
+	ctx.JSON(http.StatusOK, nil)
+}
