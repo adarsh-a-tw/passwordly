@@ -60,7 +60,7 @@ func TestUserValidator_CreateUserRequest(t *testing.T) {
 
 	for _, testCase := range testCases {
 		var cur users.CreateUserRequest
-		if encodingErr := encodeJSON(testCase.input, &cur); encodingErr != nil {
+		if parsingErr := parseJSON(testCase.input, &cur); parsingErr != nil {
 			t.FailNow()
 		}
 
@@ -89,7 +89,7 @@ func TestUserValidator_ChangePasswordRequest(t *testing.T) {
 
 	for _, testCase := range testCases {
 		var cur users.ChangePasswordRequest
-		if encodingErr := encodeJSON(testCase.input, &cur); encodingErr != nil {
+		if parsingErr := parseJSON(testCase.input, &cur); parsingErr != nil {
 			t.FailNow()
 		}
 
@@ -101,7 +101,7 @@ func TestUserValidator_ChangePasswordRequest(t *testing.T) {
 	}
 }
 
-func encodeJSON(jsonString string, obj any) error {
+func parseJSON(jsonString string, obj any) error {
 	return json.Unmarshal([]byte(jsonString), &obj)
 }
 

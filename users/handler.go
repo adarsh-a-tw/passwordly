@@ -1,7 +1,6 @@
 package users
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/adarsh-a-tw/passwordly/common"
@@ -72,8 +71,6 @@ func (uh *UserHandler) Login(ctx *gin.Context) {
 		ctx.JSON(http.StatusBadRequest, common.ErrorResponse{Message: "Invalid Credentials"})
 		return
 	}
-
-	fmt.Println(uh.PasswordHasher.ComparePassword(lur.Password, u.Password))
 
 	if uh.PasswordHasher.ComparePassword(lur.Password, u.Password) {
 		tokenStr, err := uh.AuthProvider.GenerateToken(u.Id)

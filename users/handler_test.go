@@ -708,7 +708,7 @@ func TestUserHandler_ChangePassword_ShouldThrowErrorForUpdateFailure(t *testing.
 	assert.Equal(t, expectedResponse, actualResponse)
 }
 
-func TestUserHandler_UpdateUserDetails_ShouldUpdateUserSuccessfully(t *testing.T) {
+func TestUserHandler_UpdateUser_ShouldUpdateUserSuccessfully(t *testing.T) {
 	uurs := []users.UpdateUserRequest{
 		{
 			Email: "test-update@email.com",
@@ -756,7 +756,7 @@ func TestUserHandler_UpdateUserDetails_ShouldUpdateUserSuccessfully(t *testing.T
 	}
 }
 
-func TestUserHandler_UpdateUserDetails_ShouldNotUpdateUserForExistingUsername(t *testing.T) {
+func TestUserHandler_UpdateUser_ShouldNotUpdateUserForExistingUsername(t *testing.T) {
 	uur := users.UpdateUserRequest{
 		Username: "test-update-username",
 	}
@@ -797,7 +797,7 @@ func TestUserHandler_UpdateUserDetails_ShouldNotUpdateUserForExistingUsername(t 
 	assert.Contains(t, rec.Body.String(), "Username already exists. Try another.")
 }
 
-func TestUserHandler_UpdateUserDetails_ShouldNotUpdateUserForExistingEmail(t *testing.T) {
+func TestUserHandler_UpdateUser_ShouldNotUpdateUserForExistingEmail(t *testing.T) {
 	uur := users.UpdateUserRequest{
 		Email: "test-update@email.com",
 	}
