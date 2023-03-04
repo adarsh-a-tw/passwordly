@@ -26,6 +26,20 @@ func (_m *VaultRepository) Create(v *vaults.Vault) error {
 	return r0
 }
 
+// FetchByUserId provides a mock function with given fields: userId, _a1
+func (_m *VaultRepository) FetchByUserId(userId string, _a1 *[]vaults.Vault) error {
+	ret := _m.Called(userId, _a1)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(string, *[]vaults.Vault) error); ok {
+		r0 = rf(userId, _a1)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
 type mockConstructorTestingTNewVaultRepository interface {
 	mock.TestingT
 	Cleanup(func())

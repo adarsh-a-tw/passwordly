@@ -45,3 +45,24 @@ func (vh *VaultHandler) CreateVault(ctx *gin.Context) {
 		Name: v.Name,
 	})
 }
+
+func (vh *VaultHandler) FetchVaults(ctx *gin.Context) {
+	id := ctx.GetString("user_id")
+	var u users.User
+
+	if err := vh.UserRepo.FindById(id, &u); err != nil {
+		ctx.JSON(http.StatusInternalServerError, common.InternalServerError())
+		return
+	}
+
+	var vaults []Vault
+	if err := vh.Repo.FetchByUserId(u.Id, &vaults); err != nil {
+		ctx.JSON(http.StatusInternalServerError, common.InternalServerError())
+		return
+	}
+
+	response := VaultListResponse{}
+	response.load(vaults)
+
+	ctx.JSON(http.StatusOK, response)
+}

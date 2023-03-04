@@ -147,6 +147,125 @@ func TestVaultHandler_CreateVault_ShouldThrowInternalServerErrorIfCreateMethodFa
 	assert.Equal(t, expectedResponse, actualResponse)
 }
 
+func TestVaultHandler_FetchVaults_ShouldFetchVaultsSuccessfully(t *testing.T) {
+	mv := mockVaults()
+	mockVault1 := (*mv)[0]
+	mockVault2 := (*mv)[1]
+
+	expectedResponse := vaults.VaultListResponse{
+		Vaults: []vaults.VaultResponse{
+			{
+				Id:   mockVault1.Id,
+				Name: mockVault1.Name,
+			},
+			{
+				Id:   mockVault2.Id,
+				Name: mockVault2.Name,
+			},
+		},
+	}
+
+	ctx, rec := prepareContextAndResponseRecorder(t, "/api/v1/vaults", "GET", nil)
+
+	repo := &vaults_mocks.VaultRepository{}
+	userRepo := &user_mocks.UserRepository{}
+
+	userRepo.On("FindById", "mock_user_id", mock.AnythingOfType("*users.User")).Return(nil).Run(func(args mock.Arguments) {
+		arg := args.Get(1).(*users.User)
+		mu := mockUser()
+		arg.Id = mu.Id
+		arg.Username = mu.Username
+		arg.Email = mu.Email
+		arg.Password = mu.Password
+	})
+	repo.On("FetchByUserId", "mock_user_id", mock.AnythingOfType("*[]vaults.Vault")).Return(nil).Run(func(args mock.Arguments) {
+		arg := args.Get(1).(*[]vaults.Vault)
+		(*arg) = append((*arg), mockVault1)
+		(*arg) = append((*arg), mockVault2)
+	})
+
+	vh := vaults.VaultHandler{
+		Repo:     repo,
+		UserRepo: userRepo,
+	}
+
+	ctx.Set("user_id", "mock_user_id")
+
+	vh.FetchVaults(ctx)
+
+	var actualResponse vaults.VaultListResponse
+	decodeJSONResponse(t, rec, &actualResponse)
+
+	userRepo.AssertCalled(t, "FindById", "mock_user_id", mock.AnythingOfType("*users.User"))
+	repo.AssertCalled(t, "FetchByUserId", "mock_user_id", mock.AnythingOfType("*[]vaults.Vault"))
+
+	assert.Equal(t, http.StatusOK, rec.Code)
+	assert.Equal(t, expectedResponse, actualResponse)
+}
+
+func TestVaultHandler_FetchVaults_ShouldThrowInternalServerErrorIfFindByIdMethodFails(t *testing.T) {
+	expectedResponse := common.ErrorResponse{Message: "Something went wrong. Try again."}
+
+	ctx, rec := prepareContextAndResponseRecorder(t, "/api/v1/vaults", "GET", nil)
+
+	userRepo := &user_mocks.UserRepository{}
+
+	userRepo.On("FindById", "mock_user_id", mock.AnythingOfType("*users.User")).Return(errors.New("MOCK_ERROR"))
+
+	vh := vaults.VaultHandler{
+		UserRepo: userRepo,
+	}
+
+	ctx.Set("user_id", "mock_user_id")
+
+	vh.FetchVaults(ctx)
+
+	var actualResponse common.ErrorResponse
+	decodeJSONResponse(t, rec, &actualResponse)
+
+	userRepo.AssertCalled(t, "FindById", "mock_user_id", mock.AnythingOfType("*users.User"))
+
+	assert.Equal(t, http.StatusInternalServerError, rec.Code)
+	assert.Equal(t, expectedResponse, actualResponse)
+}
+
+func TestVaultHandler_FetchVaults_ShouldThrowInternalServerErrorIfFetchByUserIdMethodFails(t *testing.T) {
+	expectedResponse := common.ErrorResponse{Message: "Something went wrong. Try again."}
+
+	ctx, rec := prepareContextAndResponseRecorder(t, "/api/v1/vaults", "GET", nil)
+
+	repo := &vaults_mocks.VaultRepository{}
+	userRepo := &user_mocks.UserRepository{}
+
+	userRepo.On("FindById", "mock_user_id", mock.AnythingOfType("*users.User")).Return(nil).Run(func(args mock.Arguments) {
+		arg := args.Get(1).(*users.User)
+		mu := mockUser()
+		arg.Id = mu.Id
+		arg.Username = mu.Username
+		arg.Email = mu.Email
+		arg.Password = mu.Password
+	})
+	repo.On("FetchByUserId", "mock_user_id", mock.AnythingOfType("*[]vaults.Vault")).Return(errors.New("MOCK_ERROR"))
+
+	vh := vaults.VaultHandler{
+		Repo:     repo,
+		UserRepo: userRepo,
+	}
+
+	ctx.Set("user_id", "mock_user_id")
+
+	vh.FetchVaults(ctx)
+
+	var actualResponse common.ErrorResponse
+	decodeJSONResponse(t, rec, &actualResponse)
+
+	userRepo.AssertCalled(t, "FindById", "mock_user_id", mock.AnythingOfType("*users.User"))
+	repo.AssertCalled(t, "FetchByUserId", "mock_user_id", mock.AnythingOfType("*[]vaults.Vault"))
+
+	assert.Equal(t, http.StatusInternalServerError, rec.Code)
+	assert.Equal(t, expectedResponse, actualResponse)
+}
+
 func mockUser() *users.User {
 	return &users.User{
 		Id:        "mock_user_id",
@@ -155,6 +274,25 @@ func mockUser() *users.User {
 		Email:     "test@email.com",
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
+	}
+}
+
+func mockVaults() *[]vaults.Vault {
+	return &[]vaults.Vault{
+		{
+			Id:        "mock_vault_id_1",
+			Name:      "Mock Vault 1",
+			User:      *mockUser(),
+			CreatedAt: time.Now(),
+			UpdatedAt: time.Now(),
+		},
+		{
+			Id:        "mock_vault_id_2",
+			Name:      "Mock Vault 2",
+			User:      *mockUser(),
+			CreatedAt: time.Now(),
+			UpdatedAt: time.Now(),
+		},
 	}
 }
 
