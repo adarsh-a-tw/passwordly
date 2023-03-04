@@ -3,11 +3,14 @@ package main
 import (
 	"github.com/adarsh-a-tw/passwordly/common"
 	"github.com/adarsh-a-tw/passwordly/users"
+	"github.com/adarsh-a-tw/passwordly/vaults"
 	"github.com/gin-gonic/gin"
 )
 
 func migrate() {
-	common.DB().AutoMigrate(&users.User{})
+	db := common.DB()
+	db.AutoMigrate(&users.User{})
+	db.AutoMigrate(&vaults.Vault{})
 }
 
 func main() {
@@ -22,7 +25,11 @@ func main() {
 	r := gin.Default()
 
 	users.RegisterValidations()
-	users.SetupRoutes(r, common.DB())
+
+	db := common.DB()
+
+	users.SetupRoutes(r, db)
+	vaults.SetupRoutes(r, db)
 
 	r.Run()
 }

@@ -17,7 +17,7 @@ func SetupRoutes(r *gin.Engine, db *gorm.DB) {
 
 	uh := UserHandler{
 		Repo: &UserRepositoryImpl{
-			db: db,
+			Db: db,
 		},
 		AuthProvider:   &utils.AuthProviderImpl{},
 		PasswordHasher: &utils.PasswordHasherImpl{},
