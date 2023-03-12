@@ -1,12 +1,14 @@
 package vaults
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/adarsh-a-tw/passwordly/common"
 	"github.com/adarsh-a-tw/passwordly/users"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"gorm.io/gorm"
 )
 
 type VaultHandler struct {
@@ -65,4 +67,52 @@ func (vh *VaultHandler) FetchVaults(ctx *gin.Context) {
 	response.load(vaults)
 
 	ctx.JSON(http.StatusOK, response)
+}
+
+func (vh *VaultHandler) UpdateVault(ctx *gin.Context) {
+	userId := ctx.GetString("user_id")
+	vaultId := ctx.Param("id")
+
+	valid, err := validateVaultOwner(vh.Repo, vaultId, userId)
+
+	if err != nil {
+		handleGormError(ctx, err)
+		return
+	}
+
+	if !valid {
+		ctx.JSON(http.StatusUnauthorized, common.ErrorResponse{Message: "Unauthorized access"})
+		return
+	}
+
+	var vault Vault
+
+	if err := vh.Repo.FetchById(vaultId, &vault); err != nil {
+		handleGormError(ctx, err)
+		return
+	}
+
+	var uvr UpdateVaultRequest
+
+	if err := ctx.ShouldBindJSON(&uvr); err != nil {
+		ctx.JSON(http.StatusBadRequest, common.ErrorResponse{Message: err.Error()})
+		return
+	}
+
+	vault.Name = uvr.Name
+
+	if err := vh.Repo.Update(&vault); err != nil {
+		ctx.JSON(http.StatusInternalServerError, common.InternalServerError())
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"message": "Vault updated successfully"})
+}
+
+func handleGormError(ctx *gin.Context, err error) {
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		ctx.AbortWithStatus(http.StatusNotFound)
+	} else {
+		ctx.JSON(http.StatusInternalServerError, common.InternalServerError())
+	}
 }

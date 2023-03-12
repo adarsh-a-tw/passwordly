@@ -5,6 +5,8 @@ import "gorm.io/gorm"
 type VaultRepository interface {
 	Create(v *Vault) error
 	FetchByUserId(userId string, vaults *[]Vault) error
+	FetchById(id string, v *Vault) error
+	Update(v *Vault) error
 }
 
 type VaultRepositoryImpl struct {
@@ -17,4 +19,12 @@ func (vr *VaultRepositoryImpl) Create(v *Vault) error {
 
 func (vr *VaultRepositoryImpl) FetchByUserId(userId string, vaults *[]Vault) error {
 	return vr.Db.Where("user_refer = ?", userId).Find(vaults).Error
+}
+
+func (vr *VaultRepositoryImpl) FetchById(id string, v *Vault) error {
+	return vr.Db.Where("Id = ?", id).Find(v).Error
+}
+
+func (vr *VaultRepositoryImpl) Update(v *Vault) error {
+	return vr.Db.Save(v).Error
 }

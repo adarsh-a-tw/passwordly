@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -17,6 +18,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"gorm.io/gorm"
 )
 
 func TestVaultHandler_CreateVault_ShouldCreateVaultSuccessfully(t *testing.T) {
@@ -264,6 +266,148 @@ func TestVaultHandler_FetchVaults_ShouldThrowInternalServerErrorIfFetchByUserIdM
 
 	assert.Equal(t, http.StatusInternalServerError, rec.Code)
 	assert.Equal(t, expectedResponse, actualResponse)
+}
+
+func TestVaultHandler_UpdateVault_ShouldUpdateVaultSuccessfully(t *testing.T) {
+
+	uvr := vaults.UpdateVaultRequest{
+		Name: "test-vault-renamed",
+	}
+	existingVault := (*mockVaults())[0]
+	userId := "mock_user_id"
+
+	ctx, rec := prepareContextAndResponseRecorder(t, fmt.Sprintf("/api/v1/vaults/%s", existingVault.Id), "PATCH", uvr)
+	repo := &vaults_mocks.VaultRepository{}
+	ctx.Set("user_id", userId)
+	ctx.AddParam("id", existingVault.Id)
+
+	repo.On("FetchById", existingVault.Id, mock.AnythingOfType("*vaults.Vault")).Return(nil).Run(func(args mock.Arguments) {
+		vault := args.Get(1).(*vaults.Vault)
+		vault.Id = existingVault.Id
+		vault.Name = existingVault.Name
+		vault.UserRefer = userId
+	})
+
+	repo.On("Update", mock.AnythingOfType("*vaults.Vault")).Return(nil)
+
+	vh := vaults.VaultHandler{
+		Repo:     repo,
+		UserRepo: &user_mocks.UserRepository{},
+	}
+
+	vh.UpdateVault(ctx)
+
+	repo.AssertNumberOfCalls(t, "FetchById", 2)
+	repo.AssertNumberOfCalls(t, "Update", 1)
+
+	assert.Equal(t, http.StatusOK, rec.Code)
+	assert.Equal(t, `{"message":"Vault updated successfully"}`, rec.Body.String())
+}
+
+func TestVaultHandler_UpdateVault_ShouldNotUpdateSuccessfullyWhenVaultOwnerIsNotRequester(t *testing.T) {
+
+	uvr := vaults.UpdateVaultRequest{
+		Name: "test-vault-renamed",
+	}
+	existingVault := (*mockVaults())[0]
+	userId := "mock_user_id"
+
+	ctx, rec := prepareContextAndResponseRecorder(t, fmt.Sprintf("/api/v1/vaults/%s", existingVault.Id), "PATCH", uvr)
+	repo := &vaults_mocks.VaultRepository{}
+	ctx.Set("user_id", userId)
+	ctx.AddParam("id", existingVault.Id)
+
+	repo.On("FetchById", existingVault.Id, mock.AnythingOfType("*vaults.Vault")).Return(nil).Run(func(args mock.Arguments) {
+		vault := args.Get(1).(*vaults.Vault)
+		vault.Id = existingVault.Id
+		vault.Name = existingVault.Name
+		vault.UserRefer = "mock_different_user_id"
+	})
+
+	vh := vaults.VaultHandler{
+		Repo:     repo,
+		UserRepo: &user_mocks.UserRepository{},
+	}
+
+	vh.UpdateVault(ctx)
+
+	repo.AssertNumberOfCalls(t, "FetchById", 1)
+
+	assert.Equal(t, http.StatusUnauthorized, rec.Code)
+}
+
+func TestVaultHandler_UpdateVault_ShouldNotUpdateSuccessfullyIfFetchByIdMethodFails(t *testing.T) {
+	uvr := vaults.UpdateVaultRequest{
+		Name: "test-vault-renamed",
+	}
+	existingVault := (*mockVaults())[0]
+	userId := "mock_user_id"
+	ctx, rec := prepareContextAndResponseRecorder(t, fmt.Sprintf("/api/v1/vaults/%s", existingVault.Id), "PATCH", uvr)
+	repo := &vaults_mocks.VaultRepository{}
+	ctx.Set("user_id", userId)
+	ctx.AddParam("id", existingVault.Id)
+	repo.On("FetchById", existingVault.Id, mock.AnythingOfType("*vaults.Vault")).Return(errors.New("mock FetchById fail"))
+
+	vh := vaults.VaultHandler{
+		Repo:     repo,
+		UserRepo: &user_mocks.UserRepository{},
+	}
+	vh.UpdateVault(ctx)
+
+	assert.Equal(t, `{"message":"Something went wrong. Try again."}`, rec.Body.String())
+	assert.Equal(t, http.StatusInternalServerError, rec.Code)
+}
+
+func TestVaultHandler_UpdateVault_ShouldNotUpdateSuccessfullyIfFetchByIdReturnsNotFoundError(t *testing.T) {
+	uvr := vaults.UpdateVaultRequest{
+		Name: "test-vault-renamed",
+	}
+	existingVault := (*mockVaults())[0]
+	userId := "mock_user_id"
+	ctx, rec := prepareContextAndResponseRecorder(t, fmt.Sprintf("/api/v1/vaults/%s", existingVault.Id), "PATCH", uvr)
+	repo := &vaults_mocks.VaultRepository{}
+	ctx.Set("user_id", userId)
+	ctx.AddParam("id", existingVault.Id)
+	repo.On("FetchById", existingVault.Id, mock.AnythingOfType("*vaults.Vault")).Return(gorm.ErrRecordNotFound)
+
+	vh := vaults.VaultHandler{
+		Repo:     repo,
+		UserRepo: &user_mocks.UserRepository{},
+	}
+	vh.UpdateVault(ctx)
+
+	assert.Equal(t, http.StatusNotFound, rec.Code)
+}
+
+func TestVaultHandler_UpdateVault_ShouldNotUpdateSuccessfullyIfUpdateMethodFails(t *testing.T) {
+
+	uvr := vaults.UpdateVaultRequest{
+		Name: "test-vault-renamed",
+	}
+	existingVault := (*mockVaults())[0]
+	userId := "mock_user_id"
+
+	ctx, rec := prepareContextAndResponseRecorder(t, fmt.Sprintf("/api/v1/vaults/%s", existingVault.Id), "PATCH", uvr)
+	repo := &vaults_mocks.VaultRepository{}
+	ctx.Set("user_id", userId)
+	ctx.AddParam("id", existingVault.Id)
+
+	repo.On("FetchById", existingVault.Id, mock.AnythingOfType("*vaults.Vault")).Return(nil).Run(func(args mock.Arguments) {
+		vault := args.Get(1).(*vaults.Vault)
+		vault.Id = existingVault.Id
+		vault.Name = existingVault.Name
+		vault.UserRefer = userId
+	})
+
+	repo.On("Update", mock.AnythingOfType("*vaults.Vault")).Return(errors.New("mock error"))
+
+	vh := vaults.VaultHandler{
+		Repo:     repo,
+		UserRepo: &user_mocks.UserRepository{},
+	}
+	vh.UpdateVault(ctx)
+
+	assert.Equal(t, http.StatusInternalServerError, rec.Code)
 }
 
 func mockUser() *users.User {
