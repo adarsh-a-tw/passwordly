@@ -7,6 +7,7 @@ type VaultRepository interface {
 	FetchByUserId(userId string, vaults *[]Vault) error
 	FetchById(id string, v *Vault) error
 	Update(v *Vault) error
+	Delete(v *Vault) error
 }
 
 type VaultRepositoryImpl struct {
@@ -27,4 +28,8 @@ func (vr *VaultRepositoryImpl) FetchById(id string, v *Vault) error {
 
 func (vr *VaultRepositoryImpl) Update(v *Vault) error {
 	return vr.Db.Save(v).Error
+}
+
+func (vr *VaultRepositoryImpl) Delete(v *Vault) error {
+	return vr.Db.Delete(&v).Error
 }

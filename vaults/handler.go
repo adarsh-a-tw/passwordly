@@ -109,6 +109,37 @@ func (vh *VaultHandler) UpdateVault(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{"message": "Vault updated successfully"})
 }
 
+func (vh *VaultHandler) DeleteVault(ctx *gin.Context) {
+	userId := ctx.GetString("user_id")
+	vaultId := ctx.Param("id")
+
+	valid, err := validateVaultOwner(vh.Repo, vaultId, userId)
+
+	if err != nil {
+		handleGormError(ctx, err)
+		return
+	}
+
+	if !valid {
+		ctx.JSON(http.StatusUnauthorized, common.ErrorResponse{Message: "Unauthorized access"})
+		return
+	}
+
+	var vault Vault
+
+	if err := vh.Repo.FetchById(vaultId, &vault); err != nil {
+		handleGormError(ctx, err)
+		return
+	}
+
+	if err := vh.Repo.Delete(&vault); err != nil {
+		ctx.JSON(http.StatusInternalServerError, common.InternalServerError())
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"message": "Vault deleted successfully"})
+}
+
 func handleGormError(ctx *gin.Context, err error) {
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		ctx.AbortWithStatus(http.StatusNotFound)

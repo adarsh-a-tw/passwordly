@@ -26,6 +26,20 @@ func (_m *VaultRepository) Create(v *vaults.Vault) error {
 	return r0
 }
 
+// Delete provides a mock function with given fields: v
+func (_m *VaultRepository) Delete(v *vaults.Vault) error {
+	ret := _m.Called(v)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(*vaults.Vault) error); ok {
+		r0 = rf(v)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
 // FetchById provides a mock function with given fields: id, v
 func (_m *VaultRepository) FetchById(id string, v *vaults.Vault) error {
 	ret := _m.Called(id, v)

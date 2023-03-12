@@ -336,7 +336,7 @@ func TestVaultHandler_UpdateVault_ShouldNotUpdateSuccessfullyWhenVaultOwnerIsNot
 	assert.Equal(t, http.StatusUnauthorized, rec.Code)
 }
 
-func TestVaultHandler_UpdateVault_ShouldNotUpdateSuccessfullyIfFetchByIdMethodFails(t *testing.T) {
+func TestVaultHandler_UpdateVault_ShouldNotUpdateSuccessfullyWhenFetchByIdMethodFails(t *testing.T) {
 	uvr := vaults.UpdateVaultRequest{
 		Name: "test-vault-renamed",
 	}
@@ -358,7 +358,7 @@ func TestVaultHandler_UpdateVault_ShouldNotUpdateSuccessfullyIfFetchByIdMethodFa
 	assert.Equal(t, http.StatusInternalServerError, rec.Code)
 }
 
-func TestVaultHandler_UpdateVault_ShouldNotUpdateSuccessfullyIfFetchByIdReturnsNotFoundError(t *testing.T) {
+func TestVaultHandler_UpdateVault_ShouldNotUpdateSuccessfullyWhenFetchByIdReturnsNotFoundError(t *testing.T) {
 	uvr := vaults.UpdateVaultRequest{
 		Name: "test-vault-renamed",
 	}
@@ -379,7 +379,7 @@ func TestVaultHandler_UpdateVault_ShouldNotUpdateSuccessfullyIfFetchByIdReturnsN
 	assert.Equal(t, http.StatusNotFound, rec.Code)
 }
 
-func TestVaultHandler_UpdateVault_ShouldNotUpdateSuccessfullyIfUpdateMethodFails(t *testing.T) {
+func TestVaultHandler_UpdateVault_ShouldNotUpdateSuccessfullyWhenUpdateMethodFails(t *testing.T) {
 
 	uvr := vaults.UpdateVaultRequest{
 		Name: "test-vault-renamed",
@@ -406,6 +406,130 @@ func TestVaultHandler_UpdateVault_ShouldNotUpdateSuccessfullyIfUpdateMethodFails
 		UserRepo: &user_mocks.UserRepository{},
 	}
 	vh.UpdateVault(ctx)
+
+	assert.Equal(t, http.StatusInternalServerError, rec.Code)
+}
+
+func TestVaultHandler_DeleteVault_ShouldDeleteVaultSuccessfully(t *testing.T) {
+
+	existingVault := (*mockVaults())[0]
+	userId := "mock_user_id"
+
+	ctx, rec := prepareContextAndResponseRecorder(t, fmt.Sprintf("/api/v1/vaults/%s", existingVault.Id), "DELETE", nil)
+	repo := &vaults_mocks.VaultRepository{}
+	ctx.Set("user_id", userId)
+	ctx.AddParam("id", existingVault.Id)
+
+	repo.On("FetchById", existingVault.Id, mock.AnythingOfType("*vaults.Vault")).Return(nil).Run(func(args mock.Arguments) {
+		vault := args.Get(1).(*vaults.Vault)
+		vault.Id = existingVault.Id
+		vault.Name = existingVault.Name
+		vault.UserRefer = userId
+	})
+
+	repo.On("Delete", mock.AnythingOfType("*vaults.Vault")).Return(nil)
+
+	vh := vaults.VaultHandler{
+		Repo:     repo,
+		UserRepo: &user_mocks.UserRepository{},
+	}
+
+	vh.DeleteVault(ctx)
+
+	repo.AssertNumberOfCalls(t, "FetchById", 2)
+	repo.AssertNumberOfCalls(t, "Delete", 1)
+
+	assert.Equal(t, http.StatusOK, rec.Code)
+	assert.Equal(t, `{"message":"Vault deleted successfully"}`, rec.Body.String())
+}
+
+func TestVaultHandler_DeleteVault_ShouldNotDeleteSuccessfullyWhenVaultOwnerIsNotRequester(t *testing.T) {
+	uvr := vaults.UpdateVaultRequest{
+		Name: "test-vault-renamed",
+	}
+	existingVault := (*mockVaults())[0]
+	userId := "mock_user_id"
+	ctx, rec := prepareContextAndResponseRecorder(t, fmt.Sprintf("/api/v1/vaults/%s", existingVault.Id), "PATCH", uvr)
+	repo := &vaults_mocks.VaultRepository{}
+	ctx.Set("user_id", userId)
+	ctx.AddParam("id", existingVault.Id)
+	repo.On("FetchById", existingVault.Id, mock.AnythingOfType("*vaults.Vault")).Return(errors.New("mock FetchById fail"))
+
+	vh := vaults.VaultHandler{
+		Repo:     repo,
+		UserRepo: &user_mocks.UserRepository{},
+	}
+	vh.UpdateVault(ctx)
+
+	assert.Equal(t, `{"message":"Something went wrong. Try again."}`, rec.Body.String())
+	assert.Equal(t, http.StatusInternalServerError, rec.Code)
+}
+
+func TestVaultHandler_DeleteVault_ShouldNotDeleteSuccessfullyWhenFetchByIdMethodFails(t *testing.T) {
+	existingVault := (*mockVaults())[0]
+	userId := "mock_user_id"
+
+	ctx, rec := prepareContextAndResponseRecorder(t, fmt.Sprintf("/api/v1/vaults/%s", existingVault.Id), "DELETE", nil)
+	repo := &vaults_mocks.VaultRepository{}
+	ctx.Set("user_id", userId)
+	ctx.AddParam("id", existingVault.Id)
+
+	repo.On("FetchById", existingVault.Id, mock.AnythingOfType("*vaults.Vault")).Return(errors.New("mock error"))
+
+	vh := vaults.VaultHandler{
+		Repo:     repo,
+		UserRepo: &user_mocks.UserRepository{},
+	}
+
+	vh.DeleteVault(ctx)
+
+	repo.AssertNumberOfCalls(t, "FetchById", 1)
+
+	assert.Equal(t, http.StatusInternalServerError, rec.Code)
+}
+
+func TestVaultHandler_DeleteVault_ShouldNotDeleteSuccessfullyWhenFetchByIdReturnsNotFoundError(t *testing.T) {
+	existingVault := (*mockVaults())[0]
+	userId := "mock_user_id"
+	ctx, rec := prepareContextAndResponseRecorder(t, fmt.Sprintf("/api/v1/vaults/%s", existingVault.Id), "DELETE", nil)
+	repo := &vaults_mocks.VaultRepository{}
+	ctx.Set("user_id", userId)
+	ctx.AddParam("id", existingVault.Id)
+	repo.On("FetchById", existingVault.Id, mock.AnythingOfType("*vaults.Vault")).Return(gorm.ErrRecordNotFound)
+
+	vh := vaults.VaultHandler{
+		Repo:     repo,
+		UserRepo: &user_mocks.UserRepository{},
+	}
+	vh.DeleteVault(ctx)
+
+	assert.Equal(t, http.StatusNotFound, rec.Code)
+}
+
+func TestVaultHandler_DeleteVault_ShouldNotDeleteSuccessfullyWhenDeleteMethodFails(t *testing.T) {
+
+	existingVault := (*mockVaults())[0]
+	userId := "mock_user_id"
+
+	ctx, rec := prepareContextAndResponseRecorder(t, fmt.Sprintf("/api/v1/vaults/%s", existingVault.Id), "DELETE", nil)
+	repo := &vaults_mocks.VaultRepository{}
+	ctx.Set("user_id", userId)
+	ctx.AddParam("id", existingVault.Id)
+
+	repo.On("FetchById", existingVault.Id, mock.AnythingOfType("*vaults.Vault")).Return(nil).Run(func(args mock.Arguments) {
+		vault := args.Get(1).(*vaults.Vault)
+		vault.Id = existingVault.Id
+		vault.Name = existingVault.Name
+		vault.UserRefer = userId
+	})
+
+	repo.On("Delete", mock.AnythingOfType("*vaults.Vault")).Return(errors.New("mock error"))
+
+	vh := vaults.VaultHandler{
+		Repo:     repo,
+		UserRepo: &user_mocks.UserRepository{},
+	}
+	vh.DeleteVault(ctx)
 
 	assert.Equal(t, http.StatusInternalServerError, rec.Code)
 }

@@ -28,4 +28,5 @@ func SetupRoutes(r *gin.Engine, db *gorm.DB) {
 	rg.GET("", vh.FetchVaults)
 
 	rg.PATCH("/:id", vh.UpdateVault)
+	rg.DELETE("/:id", vh.DeleteVault)
 }
