@@ -22,7 +22,22 @@ func (uh *UserHandler) Create(ctx *gin.Context) {
 		return
 	}
 
-	if exists, err := uh.Repo.UsernameAlreadyExists(cur.Username); exists {
+	c1 := make(chan struct {
+		bool
+		error
+	})
+
+	c2 := make(chan struct {
+		bool
+		error
+	})
+
+	go uh.checkExistingUsername(cur.Username, c1)
+	go uh.checkExistingEmail(cur.Email, c2)
+
+	query1, query2 := <-c1, <-c2
+
+	if exists, err := query1.bool, query1.error; exists {
 		ctx.JSON(http.StatusBadRequest, common.ErrorResponse{Message: "Username already exists. Try another."})
 		return
 	} else if err != nil {
@@ -30,7 +45,7 @@ func (uh *UserHandler) Create(ctx *gin.Context) {
 		return
 	}
 
-	if exists, err := uh.Repo.EmailAlreadyExists(cur.Email); exists {
+	if exists, err := query2.bool, query2.error; exists {
 		ctx.JSON(http.StatusBadRequest, common.ErrorResponse{Message: "Email already exists. Try another."})
 		return
 	} else if err != nil {
@@ -153,7 +168,22 @@ func (uh *UserHandler) UpdateUser(ctx *gin.Context) {
 		return
 	}
 
-	if exists, err := uh.Repo.UsernameAlreadyExists(uur.Username); exists {
+	c1 := make(chan struct {
+		bool
+		error
+	})
+
+	c2 := make(chan struct {
+		bool
+		error
+	})
+
+	go uh.checkExistingUsername(uur.Username, c1)
+	go uh.checkExistingEmail(uur.Email, c2)
+
+	query1, query2 := <-c1, <-c2
+
+	if exists, err := query1.bool, query1.error; exists {
 		ctx.JSON(http.StatusBadRequest, common.ErrorResponse{Message: "Username already exists. Try another."})
 		return
 	} else if err != nil {
@@ -161,7 +191,7 @@ func (uh *UserHandler) UpdateUser(ctx *gin.Context) {
 		return
 	}
 
-	if exists, err := uh.Repo.EmailAlreadyExists(uur.Email); exists {
+	if exists, err := query2.bool, query2.error; exists {
 		ctx.JSON(http.StatusBadRequest, common.ErrorResponse{Message: "Email already exists. Try another."})
 		return
 	} else if err != nil {
@@ -183,4 +213,34 @@ func (uh *UserHandler) UpdateUser(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, nil)
+}
+
+// Concurrent db query methods
+
+func (uh *UserHandler) checkExistingUsername(
+	username string,
+	c chan struct {
+		bool
+		error
+	},
+) {
+	exists, err := uh.Repo.UsernameAlreadyExists(username)
+	c <- struct {
+		bool
+		error
+	}{exists, err}
+}
+
+func (uh *UserHandler) checkExistingEmail(
+	email string,
+	c chan struct {
+		bool
+		error
+	},
+) {
+	exists, err := uh.Repo.EmailAlreadyExists(email)
+	c <- struct {
+		bool
+		error
+	}{exists, err}
 }
