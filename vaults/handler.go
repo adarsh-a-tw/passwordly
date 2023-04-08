@@ -73,7 +73,7 @@ func (vh *VaultHandler) UpdateVault(ctx *gin.Context) {
 	userId := ctx.GetString("user_id")
 	vaultId := ctx.Param("id")
 
-	valid, err := validateVaultOwner(vh.Repo, vaultId, userId)
+	valid, err := ValidateVaultOwner(vh.Repo, vaultId, userId)
 
 	if err != nil {
 		handleGormError(ctx, err)
@@ -113,7 +113,7 @@ func (vh *VaultHandler) DeleteVault(ctx *gin.Context) {
 	userId := ctx.GetString("user_id")
 	vaultId := ctx.Param("id")
 
-	valid, err := validateVaultOwner(vh.Repo, vaultId, userId)
+	valid, err := ValidateVaultOwner(vh.Repo, vaultId, userId)
 
 	if err != nil {
 		handleGormError(ctx, err)
