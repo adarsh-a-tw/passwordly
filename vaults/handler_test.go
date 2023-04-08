@@ -1,12 +1,9 @@
 package vaults_test
 
 import (
-	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
-	"net/http/httptest"
 	"testing"
 	"time"
 
@@ -15,7 +12,6 @@ import (
 	user_mocks "github.com/adarsh-a-tw/passwordly/users/mocks"
 	"github.com/adarsh-a-tw/passwordly/vaults"
 	vaults_mocks "github.com/adarsh-a-tw/passwordly/vaults/mocks"
-	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"gorm.io/gorm"
@@ -26,7 +22,7 @@ func TestVaultHandler_CreateVault_ShouldCreateVaultSuccessfully(t *testing.T) {
 		Name: "Mock Vault",
 	}
 
-	ctx, rec := prepareContextAndResponseRecorder(t, "/api/v1/vaults", "POST", cvr)
+	ctx, rec := common.PrepareContextAndResponseRecorder(t, "/api/v1/vaults", "POST", cvr)
 
 	repo := &vaults_mocks.VaultRepository{}
 	userRepo := &user_mocks.UserRepository{}
@@ -51,7 +47,7 @@ func TestVaultHandler_CreateVault_ShouldCreateVaultSuccessfully(t *testing.T) {
 	vh.CreateVault(ctx)
 
 	var actualResponse vaults.VaultResponse
-	decodeJSONResponse(t, rec, &actualResponse)
+	common.DecodeJSONResponse(t, rec, &actualResponse)
 
 	userRepo.AssertCalled(t, "FindById", "mock_user_id", mock.AnythingOfType("*users.User"))
 	repo.AssertCalled(t, "Create", mock.AnythingOfType("*vaults.Vault"))
@@ -66,7 +62,7 @@ func TestVaultHandler_CreateVault_ShouldThrowInternalServerErrorIfFindByIdMethod
 		Name: "Mock Vault",
 	}
 
-	ctx, rec := prepareContextAndResponseRecorder(t, "/api/v1/vaults", "POST", cvr)
+	ctx, rec := common.PrepareContextAndResponseRecorder(t, "/api/v1/vaults", "POST", cvr)
 
 	userRepo := &user_mocks.UserRepository{}
 
@@ -81,7 +77,7 @@ func TestVaultHandler_CreateVault_ShouldThrowInternalServerErrorIfFindByIdMethod
 	vh.CreateVault(ctx)
 
 	var actualResponse common.ErrorResponse
-	decodeJSONResponse(t, rec, &actualResponse)
+	common.DecodeJSONResponse(t, rec, &actualResponse)
 
 	userRepo.AssertCalled(t, "FindById", "mock_user_id", mock.AnythingOfType("*users.User"))
 
@@ -92,7 +88,7 @@ func TestVaultHandler_CreateVault_ShouldThrowInternalServerErrorIfFindByIdMethod
 func TestVaultHandler_CreateVault_ShouldThrowErrorForInvalidRequestBody(t *testing.T) {
 	expectedResponse := common.ErrorResponse{Message: "Invalid request body"}
 
-	ctx, rec := prepareContextAndResponseRecorder(t, "/api/v1/vaults", "POST", nil)
+	ctx, rec := common.PrepareContextAndResponseRecorder(t, "/api/v1/vaults", "POST", nil)
 
 	vh := vaults.VaultHandler{}
 
@@ -101,7 +97,7 @@ func TestVaultHandler_CreateVault_ShouldThrowErrorForInvalidRequestBody(t *testi
 	vh.CreateVault(ctx)
 
 	var actualResponse common.ErrorResponse
-	decodeJSONResponse(t, rec, &actualResponse)
+	common.DecodeJSONResponse(t, rec, &actualResponse)
 
 	assert.Equal(t, http.StatusBadRequest, rec.Code)
 	assert.Equal(t, expectedResponse, actualResponse)
@@ -113,7 +109,7 @@ func TestVaultHandler_CreateVault_ShouldThrowInternalServerErrorIfCreateMethodFa
 		Name: "Mock Vault",
 	}
 
-	ctx, rec := prepareContextAndResponseRecorder(t, "/api/v1/vaults", "POST", cvr)
+	ctx, rec := common.PrepareContextAndResponseRecorder(t, "/api/v1/vaults", "POST", cvr)
 
 	repo := &vaults_mocks.VaultRepository{}
 	userRepo := &user_mocks.UserRepository{}
@@ -140,7 +136,7 @@ func TestVaultHandler_CreateVault_ShouldThrowInternalServerErrorIfCreateMethodFa
 	vh.CreateVault(ctx)
 
 	var actualResponse common.ErrorResponse
-	decodeJSONResponse(t, rec, &actualResponse)
+	common.DecodeJSONResponse(t, rec, &actualResponse)
 
 	userRepo.AssertCalled(t, "FindById", "mock_user_id", mock.AnythingOfType("*users.User"))
 	repo.AssertCalled(t, "Create", mock.AnythingOfType("*vaults.Vault"))
@@ -167,7 +163,7 @@ func TestVaultHandler_FetchVaults_ShouldFetchVaultsSuccessfully(t *testing.T) {
 		},
 	}
 
-	ctx, rec := prepareContextAndResponseRecorder(t, "/api/v1/vaults", "GET", nil)
+	ctx, rec := common.PrepareContextAndResponseRecorder(t, "/api/v1/vaults", "GET", nil)
 
 	repo := &vaults_mocks.VaultRepository{}
 	userRepo := &user_mocks.UserRepository{}
@@ -196,7 +192,7 @@ func TestVaultHandler_FetchVaults_ShouldFetchVaultsSuccessfully(t *testing.T) {
 	vh.FetchVaults(ctx)
 
 	var actualResponse vaults.VaultListResponse
-	decodeJSONResponse(t, rec, &actualResponse)
+	common.DecodeJSONResponse(t, rec, &actualResponse)
 
 	userRepo.AssertCalled(t, "FindById", "mock_user_id", mock.AnythingOfType("*users.User"))
 	repo.AssertCalled(t, "FetchByUserId", "mock_user_id", mock.AnythingOfType("*[]vaults.Vault"))
@@ -208,7 +204,7 @@ func TestVaultHandler_FetchVaults_ShouldFetchVaultsSuccessfully(t *testing.T) {
 func TestVaultHandler_FetchVaults_ShouldThrowInternalServerErrorIfFindByIdMethodFails(t *testing.T) {
 	expectedResponse := common.ErrorResponse{Message: "Something went wrong. Try again."}
 
-	ctx, rec := prepareContextAndResponseRecorder(t, "/api/v1/vaults", "GET", nil)
+	ctx, rec := common.PrepareContextAndResponseRecorder(t, "/api/v1/vaults", "GET", nil)
 
 	userRepo := &user_mocks.UserRepository{}
 
@@ -223,7 +219,7 @@ func TestVaultHandler_FetchVaults_ShouldThrowInternalServerErrorIfFindByIdMethod
 	vh.FetchVaults(ctx)
 
 	var actualResponse common.ErrorResponse
-	decodeJSONResponse(t, rec, &actualResponse)
+	common.DecodeJSONResponse(t, rec, &actualResponse)
 
 	userRepo.AssertCalled(t, "FindById", "mock_user_id", mock.AnythingOfType("*users.User"))
 
@@ -234,7 +230,7 @@ func TestVaultHandler_FetchVaults_ShouldThrowInternalServerErrorIfFindByIdMethod
 func TestVaultHandler_FetchVaults_ShouldThrowInternalServerErrorIfFetchByUserIdMethodFails(t *testing.T) {
 	expectedResponse := common.ErrorResponse{Message: "Something went wrong. Try again."}
 
-	ctx, rec := prepareContextAndResponseRecorder(t, "/api/v1/vaults", "GET", nil)
+	ctx, rec := common.PrepareContextAndResponseRecorder(t, "/api/v1/vaults", "GET", nil)
 
 	repo := &vaults_mocks.VaultRepository{}
 	userRepo := &user_mocks.UserRepository{}
@@ -259,7 +255,7 @@ func TestVaultHandler_FetchVaults_ShouldThrowInternalServerErrorIfFetchByUserIdM
 	vh.FetchVaults(ctx)
 
 	var actualResponse common.ErrorResponse
-	decodeJSONResponse(t, rec, &actualResponse)
+	common.DecodeJSONResponse(t, rec, &actualResponse)
 
 	userRepo.AssertCalled(t, "FindById", "mock_user_id", mock.AnythingOfType("*users.User"))
 	repo.AssertCalled(t, "FetchByUserId", "mock_user_id", mock.AnythingOfType("*[]vaults.Vault"))
@@ -276,7 +272,7 @@ func TestVaultHandler_UpdateVault_ShouldUpdateVaultSuccessfully(t *testing.T) {
 	existingVault := (*mockVaults())[0]
 	userId := "mock_user_id"
 
-	ctx, rec := prepareContextAndResponseRecorder(t, fmt.Sprintf("/api/v1/vaults/%s", existingVault.Id), "PATCH", uvr)
+	ctx, rec := common.PrepareContextAndResponseRecorder(t, fmt.Sprintf("/api/v1/vaults/%s", existingVault.Id), "PATCH", uvr)
 	repo := &vaults_mocks.VaultRepository{}
 	ctx.Set("user_id", userId)
 	ctx.AddParam("id", existingVault.Id)
@@ -312,7 +308,7 @@ func TestVaultHandler_UpdateVault_ShouldNotUpdateSuccessfullyWhenVaultOwnerIsNot
 	existingVault := (*mockVaults())[0]
 	userId := "mock_user_id"
 
-	ctx, rec := prepareContextAndResponseRecorder(t, fmt.Sprintf("/api/v1/vaults/%s", existingVault.Id), "PATCH", uvr)
+	ctx, rec := common.PrepareContextAndResponseRecorder(t, fmt.Sprintf("/api/v1/vaults/%s", existingVault.Id), "PATCH", uvr)
 	repo := &vaults_mocks.VaultRepository{}
 	ctx.Set("user_id", userId)
 	ctx.AddParam("id", existingVault.Id)
@@ -342,7 +338,7 @@ func TestVaultHandler_UpdateVault_ShouldNotUpdateSuccessfullyWhenFetchByIdMethod
 	}
 	existingVault := (*mockVaults())[0]
 	userId := "mock_user_id"
-	ctx, rec := prepareContextAndResponseRecorder(t, fmt.Sprintf("/api/v1/vaults/%s", existingVault.Id), "PATCH", uvr)
+	ctx, rec := common.PrepareContextAndResponseRecorder(t, fmt.Sprintf("/api/v1/vaults/%s", existingVault.Id), "PATCH", uvr)
 	repo := &vaults_mocks.VaultRepository{}
 	ctx.Set("user_id", userId)
 	ctx.AddParam("id", existingVault.Id)
@@ -364,7 +360,7 @@ func TestVaultHandler_UpdateVault_ShouldNotUpdateSuccessfullyWhenFetchByIdReturn
 	}
 	existingVault := (*mockVaults())[0]
 	userId := "mock_user_id"
-	ctx, rec := prepareContextAndResponseRecorder(t, fmt.Sprintf("/api/v1/vaults/%s", existingVault.Id), "PATCH", uvr)
+	ctx, rec := common.PrepareContextAndResponseRecorder(t, fmt.Sprintf("/api/v1/vaults/%s", existingVault.Id), "PATCH", uvr)
 	repo := &vaults_mocks.VaultRepository{}
 	ctx.Set("user_id", userId)
 	ctx.AddParam("id", existingVault.Id)
@@ -387,7 +383,7 @@ func TestVaultHandler_UpdateVault_ShouldNotUpdateSuccessfullyWhenUpdateMethodFai
 	existingVault := (*mockVaults())[0]
 	userId := "mock_user_id"
 
-	ctx, rec := prepareContextAndResponseRecorder(t, fmt.Sprintf("/api/v1/vaults/%s", existingVault.Id), "PATCH", uvr)
+	ctx, rec := common.PrepareContextAndResponseRecorder(t, fmt.Sprintf("/api/v1/vaults/%s", existingVault.Id), "PATCH", uvr)
 	repo := &vaults_mocks.VaultRepository{}
 	ctx.Set("user_id", userId)
 	ctx.AddParam("id", existingVault.Id)
@@ -415,7 +411,7 @@ func TestVaultHandler_DeleteVault_ShouldDeleteVaultSuccessfully(t *testing.T) {
 	existingVault := (*mockVaults())[0]
 	userId := "mock_user_id"
 
-	ctx, rec := prepareContextAndResponseRecorder(t, fmt.Sprintf("/api/v1/vaults/%s", existingVault.Id), "DELETE", nil)
+	ctx, rec := common.PrepareContextAndResponseRecorder(t, fmt.Sprintf("/api/v1/vaults/%s", existingVault.Id), "DELETE", nil)
 	repo := &vaults_mocks.VaultRepository{}
 	ctx.Set("user_id", userId)
 	ctx.AddParam("id", existingVault.Id)
@@ -449,7 +445,7 @@ func TestVaultHandler_DeleteVault_ShouldNotDeleteSuccessfullyWhenVaultOwnerIsNot
 	}
 	existingVault := (*mockVaults())[0]
 	userId := "mock_user_id"
-	ctx, rec := prepareContextAndResponseRecorder(t, fmt.Sprintf("/api/v1/vaults/%s", existingVault.Id), "PATCH", uvr)
+	ctx, rec := common.PrepareContextAndResponseRecorder(t, fmt.Sprintf("/api/v1/vaults/%s", existingVault.Id), "PATCH", uvr)
 	repo := &vaults_mocks.VaultRepository{}
 	ctx.Set("user_id", userId)
 	ctx.AddParam("id", existingVault.Id)
@@ -469,7 +465,7 @@ func TestVaultHandler_DeleteVault_ShouldNotDeleteSuccessfullyWhenFetchByIdMethod
 	existingVault := (*mockVaults())[0]
 	userId := "mock_user_id"
 
-	ctx, rec := prepareContextAndResponseRecorder(t, fmt.Sprintf("/api/v1/vaults/%s", existingVault.Id), "DELETE", nil)
+	ctx, rec := common.PrepareContextAndResponseRecorder(t, fmt.Sprintf("/api/v1/vaults/%s", existingVault.Id), "DELETE", nil)
 	repo := &vaults_mocks.VaultRepository{}
 	ctx.Set("user_id", userId)
 	ctx.AddParam("id", existingVault.Id)
@@ -491,7 +487,7 @@ func TestVaultHandler_DeleteVault_ShouldNotDeleteSuccessfullyWhenFetchByIdMethod
 func TestVaultHandler_DeleteVault_ShouldNotDeleteSuccessfullyWhenFetchByIdReturnsNotFoundError(t *testing.T) {
 	existingVault := (*mockVaults())[0]
 	userId := "mock_user_id"
-	ctx, rec := prepareContextAndResponseRecorder(t, fmt.Sprintf("/api/v1/vaults/%s", existingVault.Id), "DELETE", nil)
+	ctx, rec := common.PrepareContextAndResponseRecorder(t, fmt.Sprintf("/api/v1/vaults/%s", existingVault.Id), "DELETE", nil)
 	repo := &vaults_mocks.VaultRepository{}
 	ctx.Set("user_id", userId)
 	ctx.AddParam("id", existingVault.Id)
@@ -511,7 +507,7 @@ func TestVaultHandler_DeleteVault_ShouldNotDeleteSuccessfullyWhenDeleteMethodFai
 	existingVault := (*mockVaults())[0]
 	userId := "mock_user_id"
 
-	ctx, rec := prepareContextAndResponseRecorder(t, fmt.Sprintf("/api/v1/vaults/%s", existingVault.Id), "DELETE", nil)
+	ctx, rec := common.PrepareContextAndResponseRecorder(t, fmt.Sprintf("/api/v1/vaults/%s", existingVault.Id), "DELETE", nil)
 	repo := &vaults_mocks.VaultRepository{}
 	ctx.Set("user_id", userId)
 	ctx.AddParam("id", existingVault.Id)
@@ -561,29 +557,5 @@ func mockVaults() *[]vaults.Vault {
 			CreatedAt: time.Now(),
 			UpdatedAt: time.Now(),
 		},
-	}
-}
-
-func prepareContextAndResponseRecorder(t *testing.T, url string, method string, reqBody any) (ctx *gin.Context, rec *httptest.ResponseRecorder) {
-	rec = httptest.NewRecorder()
-	ctx, _ = gin.CreateTestContext(rec)
-
-	var req *http.Request
-
-	if reqBody != nil {
-		jsonBytes, err := json.Marshal(reqBody)
-		assert.NoError(t, err) // json.Marshal error
-		buffer := bytes.NewBuffer(jsonBytes)
-		req = httptest.NewRequest(method, url, buffer)
-	} else {
-		req = httptest.NewRequest(method, url, nil)
-	}
-	ctx.Request = req
-	return
-}
-
-func decodeJSONResponse(t *testing.T, rec *httptest.ResponseRecorder, obj any) {
-	if err := json.NewDecoder(rec.Body).Decode(obj); err != nil {
-		t.Failed()
 	}
 }
