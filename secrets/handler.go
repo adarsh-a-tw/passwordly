@@ -18,39 +18,10 @@ type SecretHandler struct {
 	UserRepo  users.UserRepository
 }
 
-func (sh *SecretHandler) handleCreateCredential(ctx *gin.Context, csr *CreateSecretRequest, s *Secret) {
-	if csr.Username == "" || csr.Password == "" {
-		ctx.JSON(http.StatusBadRequest, common.ErrorResponse{Message: "Invalid Request Body"})
-		return
-	}
-	c := Credential{
-		Id:       uuid.NewString(),
-		Username: csr.Username,
-		Password: csr.Password,
-		Secret:   *s,
-	}
-	if err := sh.Repo.CreateCredential(s, &c); err != nil {
-		ctx.JSON(http.StatusInternalServerError, common.InternalServerError())
-		return
-	}
-	ctx.JSON(
-		http.StatusCreated,
-		SecretResponse{
-			Id:        s.Id,
-			Name:      s.Name,
-			Type:      s.SecretType(),
-			CreatedAt: s.CreatedAt,
-			UpdatedAt: s.UpdatedAt,
-			Username:  c.Username,
-			Password:  c.Password,
-		},
-	)
-}
-
 func (sh *SecretHandler) CreateSecret(ctx *gin.Context) {
 	var csr CreateSecretRequest
 	if err := ctx.ShouldBindJSON(&csr); err != nil {
-		ctx.JSON(http.StatusBadRequest, common.ErrorResponse{Message: "Invalid request body"})
+		ctx.JSON(http.StatusBadRequest, common.ErrorResponse{Message: "Invalid Request body"})
 		return
 	}
 
@@ -96,10 +67,41 @@ func (sh *SecretHandler) CreateSecret(ctx *gin.Context) {
 	}
 }
 
+// private methods
+
 func handleGormError(ctx *gin.Context, err error) {
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		ctx.AbortWithStatus(http.StatusNotFound)
 	} else {
 		ctx.JSON(http.StatusInternalServerError, common.InternalServerError())
 	}
+}
+
+func (sh *SecretHandler) handleCreateCredential(ctx *gin.Context, csr *CreateSecretRequest, s *Secret) {
+	if csr.Username == "" || csr.Password == "" {
+		ctx.JSON(http.StatusBadRequest, common.ErrorResponse{Message: "Invalid Request body"})
+		return
+	}
+	c := Credential{
+		Id:       uuid.NewString(),
+		Username: csr.Username,
+		Password: csr.Password,
+		Secret:   *s,
+	}
+	if err := sh.Repo.CreateCredential(s, &c); err != nil {
+		ctx.JSON(http.StatusInternalServerError, common.InternalServerError())
+		return
+	}
+	ctx.JSON(
+		http.StatusCreated,
+		SecretResponse{
+			Id:        s.Id,
+			Name:      s.Name,
+			Type:      s.SecretType(),
+			CreatedAt: s.CreatedAt,
+			UpdatedAt: s.UpdatedAt,
+			Username:  c.Username,
+			Password:  c.Password,
+		},
+	)
 }
