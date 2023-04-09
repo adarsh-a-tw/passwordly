@@ -18,6 +18,35 @@ type SecretHandler struct {
 	UserRepo  users.UserRepository
 }
 
+func (sh *SecretHandler) handleCreateCredential(ctx *gin.Context, csr *CreateSecretRequest, s *Secret) {
+	if csr.Username == "" || csr.Password == "" {
+		ctx.JSON(http.StatusBadRequest, common.ErrorResponse{Message: "Invalid Request Body"})
+		return
+	}
+	c := Credential{
+		Id:       uuid.NewString(),
+		Username: csr.Username,
+		Password: csr.Password,
+		Secret:   *s,
+	}
+	if err := sh.Repo.CreateCredential(s, &c); err != nil {
+		ctx.JSON(http.StatusInternalServerError, common.InternalServerError())
+		return
+	}
+	ctx.JSON(
+		http.StatusCreated,
+		SecretResponse{
+			Id:        s.Id,
+			Name:      s.Name,
+			Type:      s.SecretType(),
+			CreatedAt: s.CreatedAt,
+			UpdatedAt: s.UpdatedAt,
+			Username:  c.Username,
+			Password:  c.Password,
+		},
+	)
+}
+
 func (sh *SecretHandler) CreateSecret(ctx *gin.Context) {
 	var csr CreateSecretRequest
 	if err := ctx.ShouldBindJSON(&csr); err != nil {
@@ -60,36 +89,9 @@ func (sh *SecretHandler) CreateSecret(ctx *gin.Context) {
 		Vault: v,
 	}
 
-	var c Credential
-
 	switch csr.Type {
 	case TypeCredential:
-		if csr.Username == "" || csr.Password == "" {
-			ctx.JSON(http.StatusBadRequest, common.ErrorResponse{Message: "Invalid Request Body"})
-			return
-		}
-		c = Credential{
-			Id:       uuid.NewString(),
-			Username: csr.Username,
-			Password: csr.Password,
-			Secret:   s,
-		}
-		if err := sh.Repo.CreateCredential(&s, &c); err != nil {
-			ctx.JSON(http.StatusInternalServerError, common.InternalServerError())
-			return
-		}
-		ctx.JSON(
-			http.StatusCreated,
-			SecretResponse{
-				Id:        s.Id,
-				Name:      s.Name,
-				Type:      s.SecretType(),
-				CreatedAt: s.CreatedAt,
-				UpdatedAt: s.UpdatedAt,
-				Username:  c.Username,
-				Password:  c.Password,
-			},
-		)
+		sh.handleCreateCredential(ctx, &csr, &s)
 	default:
 	}
 }
