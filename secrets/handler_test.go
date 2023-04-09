@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/adarsh-a-tw/passwordly/common"
-	"github.com/adarsh-a-tw/passwordly/secrets"
 	s "github.com/adarsh-a-tw/passwordly/secrets"
 	sm "github.com/adarsh-a-tw/passwordly/secrets/mocks"
 	"github.com/adarsh-a-tw/passwordly/users"
@@ -40,7 +39,7 @@ func init() {
 		UserRefer: mockUser2.Id,
 		User:      mockUser2,
 	}
-	secrets.RegisterValidations()
+	s.RegisterValidations()
 }
 
 func TestSecretHandler_CreateSecret_ShouldCreateSecretOfTypeCredential(t *testing.T) {
@@ -86,7 +85,7 @@ func TestSecretHandler_CreateSecret_ShouldCreateSecretOfTypeCredential(t *testin
 
 	assert.Equal(t, http.StatusCreated, rec.Code)
 
-	var resp secrets.SecretResponse
+	var resp s.SecretResponse
 	common.DecodeJSONResponse(t, rec, &resp)
 
 	assert.Equal(t, csr.Name, resp.Name)
