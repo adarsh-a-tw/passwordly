@@ -1,0 +1,10 @@
+name: passwordly ci
+on: [push]
+jobs:
+  test:
+    runs-on: ubuntu-22.04
+    container:
+      image: 1.19.8-alpine3.17
+    steps:
+      - uses: actions/checkout@v3
+      - run: go test ./...

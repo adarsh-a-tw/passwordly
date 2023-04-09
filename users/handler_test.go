@@ -71,6 +71,7 @@ func TestUserHandler_Create_ShouldNotCreateUserWithAlreadyExistingUsername(t *te
 	repo := &user_mocks.UserRepository{}
 
 	repo.On("UsernameAlreadyExists", "mock_username").Return(true, nil)
+	repo.On("EmailAlreadyExists", "test@email.com").Return(false, nil)
 
 	uh := users.UserHandler{
 		Repo: repo,
@@ -151,6 +152,7 @@ func TestUserHandler_Create_ShouldThrowInternalServerErrorIfUsernameAlreadyExist
 	repo := &user_mocks.UserRepository{}
 
 	repo.On("UsernameAlreadyExists", "mock_username").Return(false, errors.New("MOCK_ERROR"))
+	repo.On("EmailAlreadyExists", "test@email.com").Return(false, nil)
 
 	uh := users.UserHandler{
 		Repo: repo,
@@ -774,6 +776,7 @@ func TestUserHandler_UpdateUser_ShouldNotUpdateUserForExistingUsername(t *testin
 	})
 
 	repo.On("UsernameAlreadyExists", mock.AnythingOfType("string")).Return(true, nil)
+	repo.On("EmailAlreadyExists", mock.AnythingOfType("string")).Return(false, nil)
 
 	repo.On("Update", mock.AnythingOfType("*users.User")).Return(nil)
 
