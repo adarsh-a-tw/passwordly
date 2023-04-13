@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"errors"
 	"fmt"
 	"time"
 
@@ -9,22 +10,87 @@ import (
 )
 
 type AuthProvider interface {
-	GenerateToken(uid string) (tokenStr string, err error)
-	VerifyToken(tokenStr string) (uid string, err error)
+	GenerateTokenPair(uid string) (tokenPair AuthTokenPair, err error)
+	GenerateAccessToken(refreshToken string) (accessToken string, err error)
+	VerifyAccessToken(accessToken string) (uid string, err error)
+}
+
+type AuthTokenPair struct {
+	AccessToken  string
+	RefreshToken string
+}
+
+type AuthTokenType string
+
+const (
+	AccessToken  AuthTokenType = "ACCESS"
+	RefreshToken AuthTokenType = "REFRESH"
+)
+
+type parsedAuthToken struct {
+	uid       string
+	tokenType AuthTokenType
 }
 
 type AuthProviderImpl struct{}
 
-func (ap *AuthProviderImpl) GenerateToken(uid string) (tokenStr string, err error) {
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"user_id": uid,
-		"exp":     jwt.NewNumericDate(time.Now().Add(1 * time.Hour)),
-	})
+func (ap *AuthProviderImpl) GenerateTokenPair(uid string) (tokenPair AuthTokenPair, err error) {
+	authTokenPair := AuthTokenPair{}
 
-	return token.SignedString(common.JWTSecretKey)
+	if accessToken, err := generateJwtTokenString(uid, AccessToken, time.Now().Add(10*time.Minute)); err != nil {
+		return authTokenPair, err
+	} else {
+		authTokenPair.AccessToken = accessToken
+	}
+
+	if refreshToken, err := generateJwtTokenString(uid, RefreshToken, time.Now().Add(24*time.Hour)); err != nil {
+		return authTokenPair, err
+	} else {
+		authTokenPair.RefreshToken = refreshToken
+	}
+
+	return authTokenPair, nil
 }
 
-func (ap *AuthProviderImpl) VerifyToken(tokenStr string) (uid string, err error) {
+func (ap *AuthProviderImpl) GenerateAccessToken(refreshToken string) (accessToken string, err error) {
+	var pat parsedAuthToken
+	if pat, err = parseJwtTokenString(refreshToken); err != nil {
+		return
+	}
+
+	if pat.tokenType == AccessToken {
+		err = errors.New("Invalid AuthToken Type")
+		return
+	}
+
+	accessToken, err = generateJwtTokenString(pat.uid, AccessToken, time.Now().Add(10*time.Minute))
+	return
+}
+
+func (ap *AuthProviderImpl) VerifyAccessToken(accessToken string) (uid string, err error) {
+	var pat parsedAuthToken
+	if pat, err = parseJwtTokenString(accessToken); err != nil {
+		return
+	}
+
+	if pat.tokenType == RefreshToken {
+		err = errors.New("Invalid AuthToken Type")
+		return
+	}
+
+	uid = pat.uid
+	return
+}
+
+func generateJwtTokenString(uid string, tokenType AuthTokenType, ttl time.Time) (string, error) {
+	return jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"user_id": uid,
+		"type":    tokenType,
+		"exp":     jwt.NewNumericDate(ttl),
+	}).SignedString(common.JWTSecretKey)
+}
+
+func parseJwtTokenString(tokenStr string) (pat parsedAuthToken, err error) {
 	token, err := jwt.Parse(tokenStr, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
@@ -38,10 +104,23 @@ func (ap *AuthProviderImpl) VerifyToken(tokenStr string) (uid string, err error)
 	}
 
 	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
-		uid = fmt.Sprintf("%s", claims["user_id"])
+		pat.uid = fmt.Sprintf("%s", claims["user_id"])
+		pat.tokenType, err = getAuthType(fmt.Sprintf("%s", claims["user_id"]))
 		return
 	}
 
-	err = fmt.Errorf("token is invalid")
+	err = errors.New("Invalid AuthToken")
+	return
+}
+
+func getAuthType(authTypeString string) (authType AuthTokenType, err error) {
+	switch authTypeString {
+	case string(AccessToken):
+		authType = AccessToken
+	case string(RefreshToken):
+		authType = RefreshToken
+	default:
+		err = errors.New("Invalid AuthToken Type")
+	}
 	return
 }

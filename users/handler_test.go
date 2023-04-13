@@ -9,6 +9,7 @@ import (
 	"github.com/adarsh-a-tw/passwordly/common"
 	"github.com/adarsh-a-tw/passwordly/users"
 	user_mocks "github.com/adarsh-a-tw/passwordly/users/mocks"
+	"github.com/adarsh-a-tw/passwordly/utils"
 	utils_mocks "github.com/adarsh-a-tw/passwordly/utils/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -240,8 +241,17 @@ func TestUserHandler_Create_ShouldThrowInternalServerErrorIfCreateMethodFails(t 
 }
 
 func TestUserHandler_Login_ShouldLoginUserSuccessfully(t *testing.T) {
-	mockAPIToken := "MOCK_API_TOKEN"
-	expectedResponse := users.LoginUserSuccessResponse{Token: mockAPIToken}
+	mockAccessToken := "MOCK_ACCESS_TOKEN"
+	mockRefreshToken := "MOCK_REFRESH_TOKEN"
+	mockTokenPair := utils.AuthTokenPair{
+		AccessToken:  mockAccessToken,
+		RefreshToken: mockRefreshToken,
+	}
+
+	expectedResponse := users.LoginUserSuccessResponse{
+		AccessToken:  mockAccessToken,
+		RefreshToken: mockRefreshToken,
+	}
 
 	lur := users.LoginUserRequest{
 		Username: "mock_username",
@@ -262,7 +272,7 @@ func TestUserHandler_Login_ShouldLoginUserSuccessfully(t *testing.T) {
 		arg.Email = mu.Email
 		arg.Password = "HashedPassword"
 	})
-	ap.On("GenerateToken", "mock_id").Return(mockAPIToken, nil).Once()
+	ap.On("GenerateTokenPair", "mock_id").Return(mockTokenPair, nil).Once()
 	hasher.On("ComparePassword", "mockPassword@123", "HashedPassword").Return(true)
 
 	uh := users.UserHandler{
@@ -277,7 +287,7 @@ func TestUserHandler_Login_ShouldLoginUserSuccessfully(t *testing.T) {
 	common.DecodeJSONResponse(t, rec, &actualResponse)
 
 	repo.AssertCalled(t, "Find", "mock_username", mock.AnythingOfType("*users.User"))
-	ap.AssertCalled(t, "GenerateToken", "mock_id")
+	ap.AssertCalled(t, "GenerateTokenPair", "mock_id")
 	hasher.AssertCalled(t, "ComparePassword", "mockPassword@123", "HashedPassword")
 
 	assert.Equal(t, http.StatusOK, rec.Code)
@@ -285,7 +295,6 @@ func TestUserHandler_Login_ShouldLoginUserSuccessfully(t *testing.T) {
 }
 
 func TestUserHandler_Login_ShouldThrowErrorForInternalServerError(t *testing.T) {
-	mockAPIToken := "MOCK_API_TOKEN"
 	expectedResponse := common.ErrorResponse{Message: "Something went wrong. Try again."}
 
 	lur := users.LoginUserRequest{
@@ -307,8 +316,8 @@ func TestUserHandler_Login_ShouldThrowErrorForInternalServerError(t *testing.T) 
 		arg.Email = mu.Email
 		arg.Password = "HashedPassword"
 	})
-	ap.On("GenerateToken", "mock_id").Return(mockAPIToken, nil).Return(
-		"", errors.New("Something went wrong. Try again."),
+	ap.On("GenerateTokenPair", "mock_id").Return(
+		utils.AuthTokenPair{}, errors.New("Something went wrong. Try again."),
 	)
 	hasher.On("ComparePassword", "mockPassword@123", "HashedPassword").Return(true)
 
@@ -324,7 +333,7 @@ func TestUserHandler_Login_ShouldThrowErrorForInternalServerError(t *testing.T) 
 	common.DecodeJSONResponse(t, rec, &actualResponse)
 
 	repo.AssertCalled(t, "Find", "mock_username", mock.AnythingOfType("*users.User"))
-	ap.AssertCalled(t, "GenerateToken", "mock_id")
+	ap.AssertCalled(t, "GenerateTokenPair", "mock_id")
 	hasher.AssertCalled(t, "ComparePassword", "mockPassword@123", "HashedPassword")
 
 	assert.Equal(t, http.StatusInternalServerError, rec.Code)

@@ -88,12 +88,15 @@ func (uh *UserHandler) Login(ctx *gin.Context) {
 	}
 
 	if uh.PasswordHasher.ComparePassword(lur.Password, u.Password) {
-		tokenStr, err := uh.AuthProvider.GenerateToken(u.Id)
+		tokenPair, err := uh.AuthProvider.GenerateTokenPair(u.Id)
 		if err != nil {
 			ctx.JSON(http.StatusInternalServerError, common.InternalServerError())
 			return
 		}
-		ctx.JSON(http.StatusOK, LoginUserSuccessResponse{Token: tokenStr})
+		ctx.JSON(http.StatusOK, LoginUserSuccessResponse{
+			AccessToken:  tokenPair.AccessToken,
+			RefreshToken: tokenPair.RefreshToken,
+		})
 		return
 	}
 
