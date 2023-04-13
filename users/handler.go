@@ -218,6 +218,20 @@ func (uh *UserHandler) UpdateUser(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, nil)
 }
 
+func (uh *UserHandler) FetchAccessToken(ctx *gin.Context) {
+	var far FetchAccessTokenRequest
+	if err := ctx.ShouldBindJSON(&far); err != nil {
+		ctx.JSON(http.StatusBadRequest, common.ErrorResponse{Message: "Invalid Request body"})
+		return
+	}
+
+	if accessToken, err := uh.AuthProvider.GenerateAccessToken(far.RefreshToken); err != nil {
+		ctx.JSON(http.StatusForbidden, common.ErrorResponse{Message: err.Error()})
+	} else {
+		ctx.JSON(http.StatusOK, AccessTokenSuccessResponse{AccessToken: accessToken})
+	}
+}
+
 // Concurrent db query methods
 
 func (uh *UserHandler) checkExistingUsername(

@@ -11,6 +11,14 @@ type LoginUserRequest struct {
 	Password string `json:"password" binding:"required"`
 }
 
+type FetchAccessTokenRequest struct {
+	RefreshToken string `json:"refresh_token" binding:"required"`
+}
+
+type AccessTokenSuccessResponse struct {
+	AccessToken string `json:"access_token"`
+}
+
 type LoginUserSuccessResponse struct {
 	AccessToken  string `json:"access_token"`
 	RefreshToken string `json:"refresh_token"`

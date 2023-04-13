@@ -25,7 +25,8 @@ func SetupRoutes(r *gin.Engine, db *gorm.DB) {
 
 	urg.POST("", uh.Create)
 	urg.POST("/login", uh.Login)
+	urg.POST("/access-token", uh.FetchAccessToken)
 
 	rg.GET("/me", uh.FetchUser)
-	rg.PATCH("/me/password/", uh.ChangePassword)
+	rg.PATCH("/me/password", uh.ChangePassword)
 }

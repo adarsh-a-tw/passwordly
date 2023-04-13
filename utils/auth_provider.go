@@ -105,7 +105,7 @@ func parseJwtTokenString(tokenStr string) (pat parsedAuthToken, err error) {
 
 	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
 		pat.uid = fmt.Sprintf("%s", claims["user_id"])
-		pat.tokenType, err = getAuthType(fmt.Sprintf("%s", claims["user_id"]))
+		pat.tokenType, err = getAuthType(fmt.Sprintf("%s", claims["type"]))
 		return
 	}
 

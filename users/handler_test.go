@@ -847,6 +847,77 @@ func TestUserHandler_UpdateUser_ShouldNotUpdateUserForExistingEmail(t *testing.T
 	assert.Contains(t, rec.Body.String(), "Email already exists. Try another.")
 }
 
+func TestUserHandler_FetchAccessToken_ShoulFetchAccessTokenSuccessfully(t *testing.T) {
+	mrt := "MOCK_REFRESH_TOKEN"
+	mat := "MOCK_ACCESS_TOKEN"
+
+	far := users.FetchAccessTokenRequest{
+		RefreshToken: mrt,
+	}
+
+	ap := &utils_mocks.AuthProvider{}
+	uh := users.UserHandler{
+		AuthProvider: ap,
+	}
+
+	ap.On("GenerateAccessToken", mrt).Return(mat, nil)
+
+	ctx, rec := common.PrepareContextAndResponseRecorder(t, "/api/v1/users/access_token", "POST", far)
+
+	uh.FetchAccessToken(ctx)
+
+	ap.AssertCalled(t, "GenerateAccessToken", mrt)
+
+	var actualResponse users.AccessTokenSuccessResponse
+	common.DecodeJSONResponse(t, rec, &actualResponse)
+
+	assert.Equal(t, http.StatusOK, rec.Code)
+	assert.Equal(t, mat, actualResponse.AccessToken)
+}
+
+func TestUserHandler_FetchAccessToken_ShoulThrowErrorForBadToken(t *testing.T) {
+	mrt := "MOCK_BAD_REFRESH_TOKEN"
+	expectedResponse := common.ErrorResponse{Message: "MOCK_ERROR"}
+
+	far := users.FetchAccessTokenRequest{
+		RefreshToken: mrt,
+	}
+
+	ap := &utils_mocks.AuthProvider{}
+	uh := users.UserHandler{
+		AuthProvider: ap,
+	}
+
+	ap.On("GenerateAccessToken", mrt).Return("", errors.New("MOCK_ERROR"))
+
+	ctx, rec := common.PrepareContextAndResponseRecorder(t, "/api/v1/users/access_token", "POST", far)
+
+	uh.FetchAccessToken(ctx)
+
+	ap.AssertCalled(t, "GenerateAccessToken", mrt)
+
+	var actualResponse common.ErrorResponse
+	common.DecodeJSONResponse(t, rec, &actualResponse)
+
+	assert.Equal(t, http.StatusForbidden, rec.Code)
+	assert.Equal(t, expectedResponse, actualResponse)
+}
+
+func TestUserHandler_FetchAccessToken_ShoulThrowErrorForInvalidBody(t *testing.T) {
+	expectedResponse := common.ErrorResponse{Message: "Invalid Request body"}
+	uh := users.UserHandler{}
+
+	ctx, rec := common.PrepareContextAndResponseRecorder(t, "/api/v1/users/access_token", "POST", nil)
+
+	uh.FetchAccessToken(ctx)
+
+	var actualResponse common.ErrorResponse
+	common.DecodeJSONResponse(t, rec, &actualResponse)
+
+	assert.Equal(t, http.StatusBadRequest, rec.Code)
+	assert.Equal(t, expectedResponse, actualResponse)
+}
+
 func mockUser() *users.User {
 	return &users.User{
 		Id:        "mock_id",
