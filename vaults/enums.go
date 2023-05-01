@@ -1,4 +1,4 @@
-package secrets
+package vaults
 
 type SecretType string
 

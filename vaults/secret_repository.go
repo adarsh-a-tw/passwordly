@@ -1,9 +1,11 @@
-package secrets
+package vaults
 
 import "gorm.io/gorm"
 
 type SecretRepository interface {
 	CreateCredential(secret *Secret, credential *Credential) error
+	FindSecretById(secret *Secret, secretId string) error
+	FindCredentialById(credential *Credential, credentialId string) error
 }
 
 type SecretRepositoryImpl struct {
@@ -33,4 +35,12 @@ func (sr *SecretRepositoryImpl) CreateCredential(secret *Secret, credential *Cre
 	}
 
 	return tx.Commit().Error
+}
+
+func (sr *SecretRepositoryImpl) FindSecretById(secret *Secret, secretId string) error {
+	return sr.Db.Where("id = ?", secretId).First(secret).Error
+}
+
+func (sr *SecretRepositoryImpl) FindCredentialById(credential *Credential, credentialId string) error {
+	return sr.Db.Where("id = ?", credentialId).First(credential).Error
 }

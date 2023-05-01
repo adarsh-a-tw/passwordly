@@ -29,4 +29,6 @@ func SetupRoutes(r *gin.Engine, db *gorm.DB) {
 
 	rg.PATCH("/:id", vh.UpdateVault)
 	rg.DELETE("/:id", vh.DeleteVault)
+
+	rg.POST("/:id/secrets", vh.CreateVault)
 }

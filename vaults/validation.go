@@ -1,4 +1,4 @@
-package secrets
+package vaults
 
 import (
 	"github.com/gin-gonic/gin/binding"

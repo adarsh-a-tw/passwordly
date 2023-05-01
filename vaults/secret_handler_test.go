@@ -1,4 +1,4 @@
-package secrets_test
+package vaults_test
 
 import (
 	"fmt"
@@ -6,76 +6,74 @@ import (
 	"testing"
 
 	"github.com/adarsh-a-tw/passwordly/common"
-	s "github.com/adarsh-a-tw/passwordly/secrets"
-	sm "github.com/adarsh-a-tw/passwordly/secrets/mocks"
 	"github.com/adarsh-a-tw/passwordly/users"
 	um "github.com/adarsh-a-tw/passwordly/users/mocks"
-	"github.com/adarsh-a-tw/passwordly/vaults"
+	v "github.com/adarsh-a-tw/passwordly/vaults"
 	vm "github.com/adarsh-a-tw/passwordly/vaults/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"gorm.io/gorm"
 )
 
-var mockUser users.User
+var mockUser1 users.User
 var mockUser2 users.User
-var mockVault vaults.Vault
-var mockVault2 vaults.Vault
+var mockVault v.Vault
+var mockVault2 v.Vault
 
 func init() {
-	mockUser = users.User{
+	mockUser1 = users.User{
 		Id: "test-user-id",
 	}
 	mockUser2 = users.User{
 		Id: "test-user-id-2",
 	}
-	mockVault = vaults.Vault{
+	mockVault = v.Vault{
 		Id:        "mock-vault",
-		UserRefer: mockUser.Id,
-		User:      mockUser,
+		UserRefer: mockUser1.Id,
+		User:      mockUser1,
 	}
-	mockVault2 = vaults.Vault{
+	mockVault2 = v.Vault{
 		Id:        "mock-vault-2",
 		UserRefer: mockUser2.Id,
 		User:      mockUser2,
 	}
-	s.RegisterValidations()
+	v.RegisterValidations()
 }
 
 func TestSecretHandler_CreateSecret_ShouldCreateSecretOfTypeCredential(t *testing.T) {
-	csr := s.CreateSecretRequest{
+	csr := v.CreateSecretRequest{
 		Name:     "test-secret",
-		Type:     s.TypeCredential,
+		Type:     v.TypeCredential,
 		Username: "test",
 		Password: "test",
 	}
 
 	ctx, rec := common.PrepareContextAndResponseRecorder(t, fmt.Sprintf("/api/v1/vaults/%s/secrets", mockVault.Id), "POST", csr)
-	ctx.Set("user_id", mockUser.Id)
+	ctx.Set("user_id", mockUser1.Id)
 	ctx.AddParam("id", mockVault.Id)
 
-	msr := sm.SecretRepository{}
+	msr := vm.SecretRepository{}
 	msr.On(
 		"CreateCredential",
-		mock.AnythingOfType("*secrets.Secret"),
-		mock.AnythingOfType("*secrets.Credential"),
+		mock.AnythingOfType("*vaults.Secret"),
+		mock.AnythingOfType("*vaults.Credential"),
 	).Return(nil)
 
 	mvr := vm.VaultRepository{}
 	mvr.On("FetchById", mockVault.Id, mock.AnythingOfType("*vaults.Vault")).Run(func(args mock.Arguments) {
-		v := args.Get(1).(*vaults.Vault)
+		v := args.Get(1).(*v.Vault)
 		v.Id = mockVault.Id
-		v.UserRefer = mockUser.Id
-		v.User = mockUser
+		v.UserRefer = mockUser1.Id
+		v.User = mockUser1
 	}).Return(nil)
 
 	mur := um.UserRepository{}
-	mur.On("FindById", mockUser.Id, mock.AnythingOfType("*users.User")).Run(func(args mock.Arguments) {
+	mur.On("FindById", mockUser1.Id, mock.AnythingOfType("*users.User")).Run(func(args mock.Arguments) {
 		u := args.Get(1).(*users.User)
-		u.Id = mockUser.Id
+		u.Id = mockUser1.Id
 	}).Return(nil)
 
-	h := s.SecretHandler{
+	h := v.SecretHandler{
 		Repo:      &msr,
 		VaultRepo: &mvr,
 		UserRepo:  &mur,
@@ -85,7 +83,7 @@ func TestSecretHandler_CreateSecret_ShouldCreateSecretOfTypeCredential(t *testin
 
 	assert.Equal(t, http.StatusCreated, rec.Code)
 
-	var resp s.SecretResponse
+	var resp v.SecretResponse
 	common.DecodeJSONResponse(t, rec, &resp)
 
 	assert.Equal(t, csr.Name, resp.Name)
@@ -97,7 +95,7 @@ func TestSecretHandler_CreateSecret_ShouldCreateSecretOfTypeCredential(t *testin
 func TestSecretHandler_CreateSecret_ShouldFailForEmptyRequestbody(t *testing.T) {
 	ctx, rec := common.PrepareContextAndResponseRecorder(t, fmt.Sprintf("/api/v1/vaults/%s/secrets", mockVault.Id), "POST", nil)
 
-	h := s.SecretHandler{}
+	h := v.SecretHandler{}
 
 	h.CreateSecret(ctx)
 
@@ -109,30 +107,30 @@ func TestSecretHandler_CreateSecret_ShouldFailForEmptyRequestbody(t *testing.T) 
 }
 
 func TestSecretHandler_CreateSecret_ShouldFailForInvalidRequestBodyForTypeCredential(t *testing.T) {
-	csr := s.CreateSecretRequest{
+	csr := v.CreateSecretRequest{
 		Name: "test-secret",
-		Type: s.TypeCredential,
+		Type: v.TypeCredential,
 	}
 
 	ctx, rec := common.PrepareContextAndResponseRecorder(t, fmt.Sprintf("/api/v1/vaults/%s/secrets", mockVault.Id), "POST", csr)
-	ctx.Set("user_id", mockUser.Id)
+	ctx.Set("user_id", mockUser1.Id)
 	ctx.AddParam("id", mockVault.Id)
 
 	mvr := vm.VaultRepository{}
 	mvr.On("FetchById", mockVault.Id, mock.AnythingOfType("*vaults.Vault")).Run(func(args mock.Arguments) {
-		v := args.Get(1).(*vaults.Vault)
+		v := args.Get(1).(*v.Vault)
 		v.Id = mockVault.Id
-		v.UserRefer = mockUser.Id
-		v.User = mockUser
+		v.UserRefer = mockUser1.Id
+		v.User = mockUser1
 	}).Return(nil)
 
 	mur := um.UserRepository{}
-	mur.On("FindById", mockUser.Id, mock.AnythingOfType("*users.User")).Run(func(args mock.Arguments) {
+	mur.On("FindById", mockUser1.Id, mock.AnythingOfType("*users.User")).Run(func(args mock.Arguments) {
 		u := args.Get(1).(*users.User)
-		u.Id = mockUser.Id
+		u.Id = mockUser1.Id
 	}).Return(nil)
 
-	h := s.SecretHandler{
+	h := v.SecretHandler{
 		VaultRepo: &mvr,
 		UserRepo:  &mur,
 	}
@@ -148,27 +146,27 @@ func TestSecretHandler_CreateSecret_ShouldFailForInvalidRequestBodyForTypeCreden
 
 func TestSecretHandler_CreateSecret_ShouldFailForInvalidVaultId(t *testing.T) {
 
-	csr := s.CreateSecretRequest{
+	csr := v.CreateSecretRequest{
 		Name:     "test-secret",
-		Type:     s.TypeCredential,
+		Type:     v.TypeCredential,
 		Username: "test",
 		Password: "test",
 	}
 
 	ctx, rec := common.PrepareContextAndResponseRecorder(t, fmt.Sprintf("/api/v1/vaults/%s/secrets", "mock-id"), "POST", csr)
-	ctx.Set("user_id", mockUser.Id)
+	ctx.Set("user_id", mockUser1.Id)
 	ctx.AddParam("id", mockVault.Id)
 
 	mvr := vm.VaultRepository{}
 	mvr.On("FetchById", mockVault.Id, mock.AnythingOfType("*vaults.Vault")).Return(gorm.ErrRecordNotFound)
 
 	mur := um.UserRepository{}
-	mur.On("FindById", mockUser.Id, mock.AnythingOfType("*users.User")).Run(func(args mock.Arguments) {
+	mur.On("FindById", mockUser1.Id, mock.AnythingOfType("*users.User")).Run(func(args mock.Arguments) {
 		u := args.Get(1).(*users.User)
-		u.Id = mockUser.Id
+		u.Id = mockUser1.Id
 	}).Return(nil)
 
-	h := s.SecretHandler{
+	h := v.SecretHandler{
 		VaultRepo: &mvr,
 		UserRepo:  &mur,
 	}
@@ -180,32 +178,32 @@ func TestSecretHandler_CreateSecret_ShouldFailForInvalidVaultId(t *testing.T) {
 
 func TestSecretHandler_CreateSecret_ShouldFailForInvalidVaultOwner(t *testing.T) {
 
-	csr := s.CreateSecretRequest{
+	csr := v.CreateSecretRequest{
 		Name:     "test-secret",
-		Type:     s.TypeCredential,
+		Type:     v.TypeCredential,
 		Username: "test",
 		Password: "test",
 	}
 
 	ctx, rec := common.PrepareContextAndResponseRecorder(t, fmt.Sprintf("/api/v1/vaults/%s/secrets", mockVault2.Id), "POST", csr)
-	ctx.Set("user_id", mockUser.Id)
+	ctx.Set("user_id", mockUser1.Id)
 	ctx.AddParam("id", mockVault2.Id)
 
 	mvr := vm.VaultRepository{}
 	mvr.On("FetchById", mockVault2.Id, mock.AnythingOfType("*vaults.Vault")).Run(func(args mock.Arguments) {
-		v := args.Get(1).(*vaults.Vault)
+		v := args.Get(1).(*v.Vault)
 		v.Id = mockVault2.Id
 		v.UserRefer = mockUser2.Id
 		v.User = mockUser2
 	}).Return(nil)
 
 	mur := um.UserRepository{}
-	mur.On("FindById", mockUser.Id, mock.AnythingOfType("*users.User")).Run(func(args mock.Arguments) {
+	mur.On("FindById", mockUser1.Id, mock.AnythingOfType("*users.User")).Run(func(args mock.Arguments) {
 		u := args.Get(1).(*users.User)
-		u.Id = mockUser.Id
+		u.Id = mockUser1.Id
 	}).Return(nil)
 
-	h := s.SecretHandler{
+	h := v.SecretHandler{
 		VaultRepo: &mvr,
 		UserRepo:  &mur,
 	}
