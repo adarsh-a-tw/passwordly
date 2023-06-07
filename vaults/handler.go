@@ -12,8 +12,9 @@ import (
 )
 
 type VaultHandler struct {
-	Repo     VaultRepository
-	UserRepo users.UserRepository
+	Repo       VaultRepository
+	UserRepo   users.UserRepository
+	SecretRepo SecretRepository
 }
 
 func (vh *VaultHandler) CreateVault(ctx *gin.Context) {
@@ -43,8 +44,9 @@ func (vh *VaultHandler) CreateVault(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusCreated, VaultResponse{
-		Id:   v.Id,
-		Name: v.Name,
+		Id:      v.Id,
+		Name:    v.Name,
+		Secrets: []SecretResponse{},
 	})
 }
 
@@ -67,6 +69,45 @@ func (vh *VaultHandler) FetchVaults(ctx *gin.Context) {
 	response.load(vaults)
 
 	ctx.JSON(http.StatusOK, response)
+}
+
+func (vh *VaultHandler) FetchVaultDetails(ctx *gin.Context) {
+	userId := ctx.GetString("user_id")
+	var u users.User
+
+	if err := vh.UserRepo.FindById(userId, &u); err != nil {
+		ctx.JSON(http.StatusInternalServerError, common.InternalServerError())
+		return
+	}
+
+	vaultId := ctx.Param("id")
+	valid, err := ValidateVaultOwner(vh.Repo, vaultId, userId)
+
+	if err != nil {
+		handleGormError(ctx, err)
+		return
+	}
+
+	if !valid {
+		ctx.JSON(http.StatusUnauthorized, common.ErrorResponse{Message: "Unauthorized access"})
+		return
+	}
+
+	var vault Vault
+	if err := vh.Repo.FetchById(vaultId, &vault); err != nil {
+		ctx.JSON(http.StatusInternalServerError, common.InternalServerError())
+		return
+	}
+
+	var credentials []Credential
+	if err = vh.SecretRepo.FindCredentials(&credentials, vaultId); err != nil {
+		handleGormError(ctx, err)
+		return
+	}
+	vr := VaultResponse{}
+	vr.load(vault, credentials)
+
+	ctx.JSON(http.StatusOK, vr)
 }
 
 func (vh *VaultHandler) UpdateVault(ctx *gin.Context) {

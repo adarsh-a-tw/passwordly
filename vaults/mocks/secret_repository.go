@@ -12,13 +12,13 @@ type SecretRepository struct {
 	mock.Mock
 }
 
-// CreateCredential provides a mock function with given fields: secret, credential
-func (_m *SecretRepository) CreateCredential(secret *vaults.Secret, credential *vaults.Credential) error {
-	ret := _m.Called(secret, credential)
+// CreateCredential provides a mock function with given fields: credential
+func (_m *SecretRepository) CreateCredential(credential *vaults.Credential) error {
+	ret := _m.Called(credential)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(*vaults.Secret, *vaults.Credential) error); ok {
-		r0 = rf(secret, credential)
+	if rf, ok := ret.Get(0).(func(*vaults.Credential) error); ok {
+		r0 = rf(credential)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -26,27 +26,13 @@ func (_m *SecretRepository) CreateCredential(secret *vaults.Secret, credential *
 	return r0
 }
 
-// FindCredentialById provides a mock function with given fields: credential, credentialId
-func (_m *SecretRepository) FindCredentialById(credential *vaults.Credential, credentialId string) error {
-	ret := _m.Called(credential, credentialId)
+// FindCredentials provides a mock function with given fields: credentials, vaultId
+func (_m *SecretRepository) FindCredentials(credentials *[]vaults.Credential, vaultId string) error {
+	ret := _m.Called(credentials, vaultId)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(*vaults.Credential, string) error); ok {
-		r0 = rf(credential, credentialId)
-	} else {
-		r0 = ret.Error(0)
-	}
-
-	return r0
-}
-
-// FindSecretById provides a mock function with given fields: secret, secretId
-func (_m *SecretRepository) FindSecretById(secret *vaults.Secret, secretId string) error {
-	ret := _m.Called(secret, secretId)
-
-	var r0 error
-	if rf, ok := ret.Get(0).(func(*vaults.Secret, string) error); ok {
-		r0 = rf(secret, secretId)
+	if rf, ok := ret.Get(0).(func(*[]vaults.Credential, string) error); ok {
+		r0 = rf(credentials, vaultId)
 	} else {
 		r0 = ret.Error(0)
 	}

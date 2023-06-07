@@ -55,7 +55,6 @@ func TestSecretHandler_CreateSecret_ShouldCreateSecretOfTypeCredential(t *testin
 	msr := vm.SecretRepository{}
 	msr.On(
 		"CreateCredential",
-		mock.AnythingOfType("*vaults.Secret"),
 		mock.AnythingOfType("*vaults.Credential"),
 	).Return(nil)
 

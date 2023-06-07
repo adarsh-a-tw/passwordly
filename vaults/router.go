@@ -12,23 +12,32 @@ func SetupRoutes(r *gin.Engine, db *gorm.DB) {
 	rg := r.Group("/api/v1/vaults")
 	rg.Use(middleware.TokenAuthMiddleware)
 
-	repo := &VaultRepositoryImpl{
+	vaultsRepo := &VaultRepositoryImpl{
 		Db: db,
 	}
 	userRepo := &users.UserRepositoryImpl{
 		Db: db,
 	}
+	secretRepo := &SecretRepositoryImpl{Db: db}
 
 	vh := VaultHandler{
-		Repo:     repo,
-		UserRepo: userRepo,
+		Repo:       vaultsRepo,
+		UserRepo:   userRepo,
+		SecretRepo: secretRepo,
+	}
+
+	sh := SecretHandler{
+		Repo:      secretRepo,
+		UserRepo:  userRepo,
+		VaultRepo: vaultsRepo,
 	}
 
 	rg.POST("", vh.CreateVault)
 	rg.GET("", vh.FetchVaults)
 
+	rg.GET("/:id", vh.FetchVaultDetails)
 	rg.PATCH("/:id", vh.UpdateVault)
 	rg.DELETE("/:id", vh.DeleteVault)
 
-	rg.POST("/:id/secrets", vh.CreateVault)
+	rg.POST("/:id/secrets", sh.CreateSecret)
 }

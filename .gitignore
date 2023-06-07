@@ -30,3 +30,7 @@ go.work
 # End of https://www.toptal.com/developers/gitignore/api/database,go
 
 .env
+
+.vscode
+
+__debug_bin

@@ -50,44 +50,38 @@ func (sh *SecretHandler) CreateSecret(ctx *gin.Context) {
 		return
 	}
 
-	s := Secret{
-		Id:    uuid.NewString(),
-		Name:  csr.Name,
-		Type:  string(csr.Type),
-		Vault: v,
-	}
-
 	switch csr.Type {
 	case TypeCredential:
-		sh.handleCreateCredential(ctx, &csr, &s)
+		sh.handleCreateCredential(ctx, &csr, &v)
 	default:
 	}
 }
 
 // private methods
-func (sh *SecretHandler) handleCreateCredential(ctx *gin.Context, csr *CreateSecretRequest, s *Secret) {
+func (sh *SecretHandler) handleCreateCredential(ctx *gin.Context, csr *CreateSecretRequest, v *Vault) {
 	if csr.Username == "" || csr.Password == "" {
 		ctx.JSON(http.StatusBadRequest, common.ErrorResponse{Message: "Invalid Request body"})
 		return
 	}
 	c := Credential{
 		Id:       uuid.NewString(),
+		Name:     csr.Name,
 		Username: csr.Username,
 		Password: csr.Password,
-		Secret:   *s,
+		Vault:    *v,
 	}
-	if err := sh.Repo.CreateCredential(s, &c); err != nil {
+	if err := sh.Repo.CreateCredential(&c); err != nil {
 		ctx.JSON(http.StatusInternalServerError, common.InternalServerError())
 		return
 	}
 	ctx.JSON(
 		http.StatusCreated,
 		SecretResponse{
-			Id:        s.Id,
-			Name:      s.Name,
-			Type:      s.SecretType(),
-			CreatedAt: s.CreatedAt,
-			UpdatedAt: s.UpdatedAt,
+			Id:        c.Id,
+			Name:      c.Name,
+			Type:      TypeCredential,
+			CreatedAt: c.CreatedAt,
+			UpdatedAt: c.UpdatedAt,
 			Username:  c.Username,
 			Password:  c.Password,
 		},

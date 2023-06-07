@@ -530,6 +530,55 @@ func TestVaultHandler_DeleteVault_ShouldNotDeleteSuccessfullyWhenDeleteMethodFai
 	assert.Equal(t, http.StatusInternalServerError, rec.Code)
 }
 
+func TestVaultHandler_FetchVaultDetails_ShouldSuccessfullyFetchVaultDetails(t *testing.T) {
+	existingVault := (*mockVaults())[0]
+	userId := "mock_user_id"
+	ctx, rec := common.PrepareContextAndResponseRecorder(t, fmt.Sprintf("/api/v1/vaults/%s", existingVault.Id), "GET", nil)
+
+	repo := &vaults_mocks.VaultRepository{}
+	userRepo := &user_mocks.UserRepository{}
+	secretRepo := &vaults_mocks.SecretRepository{}
+
+	userRepo.On("FindById", "mock_user_id", mock.AnythingOfType("*users.User")).Return(nil).Run(func(args mock.Arguments) {
+		arg := args.Get(1).(*users.User)
+		mu := mockUser()
+		arg.Id = mu.Id
+		arg.Username = mu.Username
+		arg.Email = mu.Email
+		arg.Password = mu.Password
+	})
+
+	ctx.Set("user_id", userId)
+	ctx.AddParam("id", existingVault.Id)
+
+	repo.On("FetchById", existingVault.Id, mock.AnythingOfType("*vaults.Vault")).Return(nil).Run(func(args mock.Arguments) {
+		arg := args.Get(1).(*vaults.Vault)
+		arg.Id = existingVault.Id
+		arg.Name = existingVault.Name
+		arg.UserRefer = existingVault.UserRefer
+	})
+
+	secretRepo.On("FindCredentials", mock.AnythingOfType("*[]vaults.Credential"), existingVault.Id).Return(nil).Run(func(args mock.Arguments) {
+		arg := args.Get(0).(*[]vaults.Credential)
+		mc := mockCredential()
+		*(arg) = []vaults.Credential{*mc}
+	})
+
+	vh := vaults.VaultHandler{
+		Repo:       repo,
+		UserRepo:   userRepo,
+		SecretRepo: secretRepo,
+	}
+
+	vh.FetchVaultDetails(ctx)
+
+	userRepo.AssertNumberOfCalls(t, "FindById", 1)
+	repo.AssertNumberOfCalls(t, "FetchById", 2)
+	secretRepo.AssertNumberOfCalls(t, "FindCredentials", 1)
+
+	assert.Equal(t, http.StatusOK, rec.Code)
+}
+
 func mockUser() *users.User {
 	return &users.User{
 		Id:        "mock_user_id",
@@ -547,6 +596,7 @@ func mockVaults() *[]vaults.Vault {
 			Id:        "mock_vault_id_1",
 			Name:      "Mock Vault 1",
 			User:      *mockUser(),
+			UserRefer: "mock_user_id",
 			CreatedAt: time.Now(),
 			UpdatedAt: time.Now(),
 		},
@@ -554,8 +604,20 @@ func mockVaults() *[]vaults.Vault {
 			Id:        "mock_vault_id_2",
 			Name:      "Mock Vault 2",
 			User:      *mockUser(),
+			UserRefer: "mock_user_id",
 			CreatedAt: time.Now(),
 			UpdatedAt: time.Now(),
 		},
+	}
+}
+
+func mockCredential() *vaults.Credential {
+	return &vaults.Credential{
+		Id:         "mock_cred",
+		Name:       "Test Cred",
+		Username:   "username",
+		Password:   "password",
+		VaultRefer: "mock_vault_id_1",
+		Vault:      (*mockVaults())[0],
 	}
 }

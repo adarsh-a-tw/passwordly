@@ -9,8 +9,23 @@ type CreateVaultRequest struct {
 type UpdateVaultRequest CreateVaultRequest
 
 type VaultResponse struct {
-	Id   string `json:"id"`
-	Name string `json:"name"`
+	Id      string           `json:"id"`
+	Name    string           `json:"name"`
+	Secrets []SecretResponse `json:"secrets,omitempty"`
+}
+
+func (vr *VaultResponse) load(v Vault, creds []Credential) {
+	vr.Id = v.Id
+	vr.Name = v.Name
+
+	var secretResponses []SecretResponse
+	for _, cred := range creds {
+		sr := SecretResponse{}
+		sr.load(cred)
+		secretResponses = append(secretResponses, sr)
+	}
+
+	vr.Secrets = secretResponses
 }
 
 type VaultListResponse struct {
@@ -44,4 +59,34 @@ type SecretResponse struct {
 	Password  string     `json:"password,omitempty"`
 	Value     string     `json:"value,omitempty"`
 	Document  string     `json:"document,omitempty"`
+}
+
+func (sr *SecretResponse) load(s Securable) {
+	switch s.Type() {
+	case TypeCredential:
+		cred := s.(Credential)
+		sr.Id = cred.Id
+		sr.Name = cred.Name
+		sr.Type = TypeCredential
+		sr.CreatedAt = cred.CreatedAt
+		sr.UpdatedAt = cred.UpdatedAt
+		sr.Username = cred.Username
+		sr.Password = cred.Password
+	case TypeKey:
+		key := s.(Key)
+		sr.Id = key.Id
+		sr.Name = key.Name
+		sr.Type = TypeKey
+		sr.CreatedAt = key.CreatedAt
+		sr.UpdatedAt = key.UpdatedAt
+		sr.Value = key.Value
+	case TypeDocument:
+		document := s.(Document)
+		sr.Id = document.Id
+		sr.Name = document.Name
+		sr.Type = TypeDocument
+		sr.CreatedAt = document.CreatedAt
+		sr.UpdatedAt = document.UpdatedAt
+		sr.Document = document.Content
+	}
 }

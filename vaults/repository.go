@@ -23,7 +23,7 @@ func (vr *VaultRepositoryImpl) FetchByUserId(userId string, vaults *[]Vault) err
 }
 
 func (vr *VaultRepositoryImpl) FetchById(id string, v *Vault) error {
-	return vr.Db.Where("Id = ?", id).Find(v).Error
+	return vr.Db.Where("Id = ?", id).First(v).Error
 }
 
 func (vr *VaultRepositoryImpl) Update(v *Vault) error {
