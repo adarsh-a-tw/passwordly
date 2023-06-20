@@ -153,12 +153,18 @@ func TestVaultHandler_FetchVaults_ShouldFetchVaultsSuccessfully(t *testing.T) {
 	expectedResponse := vaults.VaultListResponse{
 		Vaults: []vaults.VaultResponse{
 			{
-				Id:   mockVault1.Id,
-				Name: mockVault1.Name,
+				Id:        mockVault1.Id,
+				Name:      mockVault1.Name,
+				CreatedAt: mockVault1.CreatedAt.Unix(),
+				UpdatedAt: mockVault1.CreatedAt.Unix(),
+				Secrets:   nil,
 			},
 			{
-				Id:   mockVault2.Id,
-				Name: mockVault2.Name,
+				Id:        mockVault2.Id,
+				Name:      mockVault2.Name,
+				CreatedAt: mockVault1.CreatedAt.Unix(),
+				UpdatedAt: mockVault1.CreatedAt.Unix(),
+				Secrets:   nil,
 			},
 		},
 	}
