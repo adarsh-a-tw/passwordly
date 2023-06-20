@@ -44,9 +44,11 @@ func (vh *VaultHandler) CreateVault(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusCreated, VaultResponse{
-		Id:      v.Id,
-		Name:    v.Name,
-		Secrets: []SecretResponse{},
+		Id:        v.Id,
+		Name:      v.Name,
+		Secrets:   []SecretResponse{},
+		CreatedAt: v.CreatedAt.Unix(),
+		UpdatedAt: v.UpdatedAt.Unix(),
 	})
 }
 

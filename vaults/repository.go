@@ -19,7 +19,7 @@ func (vr *VaultRepositoryImpl) Create(v *Vault) error {
 }
 
 func (vr *VaultRepositoryImpl) FetchByUserId(userId string, vaults *[]Vault) error {
-	return vr.Db.Where("user_refer = ?", userId).Find(vaults).Error
+	return vr.Db.Where("user_refer = ?", userId).Order("updated_at DESC, id DESC").Find(vaults).Error
 }
 
 func (vr *VaultRepositoryImpl) FetchById(id string, v *Vault) error {

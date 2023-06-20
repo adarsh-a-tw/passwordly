@@ -9,16 +9,18 @@ type CreateVaultRequest struct {
 type UpdateVaultRequest CreateVaultRequest
 
 type VaultResponse struct {
-	Id      string           `json:"id"`
-	Name    string           `json:"name"`
-	Secrets []SecretResponse `json:"secrets,omitempty"`
+	Id        string           `json:"id"`
+	Name      string           `json:"name"`
+	Secrets   []SecretResponse `json:"secrets,omitempty"`
+	CreatedAt int64            `json:"created_at,omitempty"`
+	UpdatedAt int64            `json:"updated_at,omitempty"`
 }
 
 func (vr *VaultResponse) load(v Vault, creds []Credential) {
 	vr.Id = v.Id
 	vr.Name = v.Name
 
-	var secretResponses []SecretResponse
+	var secretResponses = make([]SecretResponse, 0)
 	for _, cred := range creds {
 		sr := SecretResponse{}
 		sr.load(cred)
@@ -33,9 +35,9 @@ type VaultListResponse struct {
 }
 
 func (vlr *VaultListResponse) load(vaults []Vault) {
-	var vaultResponses []VaultResponse
+	var vaultResponses = make([]VaultResponse, 0)
 	for _, vault := range vaults {
-		vaultResponses = append(vaultResponses, VaultResponse{Id: vault.Id, Name: vault.Name})
+		vaultResponses = append(vaultResponses, VaultResponse{Id: vault.Id, Name: vault.Name, CreatedAt: vault.CreatedAt.Unix(), UpdatedAt: vault.UpdatedAt.Unix()})
 	}
 	vlr.Vaults = vaultResponses
 }
