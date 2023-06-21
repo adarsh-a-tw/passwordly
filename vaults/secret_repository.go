@@ -16,5 +16,5 @@ func (sr *SecretRepositoryImpl) CreateCredential(credential *Credential) error {
 }
 
 func (sr *SecretRepositoryImpl) FindCredentials(credentials *[]Credential, vaultId string) error {
-	return sr.Db.Where("vault_refer = ?", vaultId).Find(credentials).Error
+	return sr.Db.Where("vault_refer = ?", vaultId).Order("updated_at DESC, id DESC").Find(credentials).Error
 }

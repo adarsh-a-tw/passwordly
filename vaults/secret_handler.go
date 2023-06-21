@@ -74,16 +74,12 @@ func (sh *SecretHandler) handleCreateCredential(ctx *gin.Context, csr *CreateSec
 		ctx.JSON(http.StatusInternalServerError, common.InternalServerError())
 		return
 	}
+
+	sr := SecretResponse{}
+	sr.load(c)
+
 	ctx.JSON(
 		http.StatusCreated,
-		SecretResponse{
-			Id:        c.Id,
-			Name:      c.Name,
-			Type:      TypeCredential,
-			CreatedAt: c.CreatedAt,
-			UpdatedAt: c.UpdatedAt,
-			Username:  c.Username,
-			Password:  c.Password,
-		},
+		sr,
 	)
 }

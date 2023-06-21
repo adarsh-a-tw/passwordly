@@ -1,7 +1,5 @@
 package vaults
 
-import "time"
-
 type CreateVaultRequest struct {
 	Name string `json:"name" binding:"required"`
 }
@@ -55,8 +53,8 @@ type SecretResponse struct {
 	Id        string     `json:"id"`
 	Name      string     `json:"name"`
 	Type      SecretType `json:"type"`
-	CreatedAt time.Time  `json:"created_at"`
-	UpdatedAt time.Time  `json:"updated_at"`
+	CreatedAt int64      `json:"created_at"`
+	UpdatedAt int64      `json:"updated_at"`
 	Username  string     `json:"username,omitempty"`
 	Password  string     `json:"password,omitempty"`
 	Value     string     `json:"value,omitempty"`
@@ -70,8 +68,8 @@ func (sr *SecretResponse) load(s Securable) {
 		sr.Id = cred.Id
 		sr.Name = cred.Name
 		sr.Type = TypeCredential
-		sr.CreatedAt = cred.CreatedAt
-		sr.UpdatedAt = cred.UpdatedAt
+		sr.CreatedAt = cred.CreatedAt.Unix()
+		sr.UpdatedAt = cred.UpdatedAt.Unix()
 		sr.Username = cred.Username
 		sr.Password = cred.Password
 	case TypeKey:
@@ -79,16 +77,16 @@ func (sr *SecretResponse) load(s Securable) {
 		sr.Id = key.Id
 		sr.Name = key.Name
 		sr.Type = TypeKey
-		sr.CreatedAt = key.CreatedAt
-		sr.UpdatedAt = key.UpdatedAt
+		sr.CreatedAt = key.CreatedAt.Unix()
+		sr.UpdatedAt = key.UpdatedAt.Unix()
 		sr.Value = key.Value
 	case TypeDocument:
 		document := s.(Document)
 		sr.Id = document.Id
 		sr.Name = document.Name
 		sr.Type = TypeDocument
-		sr.CreatedAt = document.CreatedAt
-		sr.UpdatedAt = document.UpdatedAt
+		sr.CreatedAt = document.CreatedAt.Unix()
+		sr.UpdatedAt = document.UpdatedAt.Unix()
 		sr.Document = document.Content
 	}
 }
