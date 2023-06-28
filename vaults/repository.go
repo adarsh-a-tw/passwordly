@@ -31,5 +31,26 @@ func (vr *VaultRepositoryImpl) Update(v *Vault) error {
 }
 
 func (vr *VaultRepositoryImpl) Delete(v *Vault) error {
-	return vr.Db.Delete(&v).Error
+	tx := vr.Db.Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
+
+	if err := tx.Error; err != nil {
+		return err
+	}
+
+	if err := tx.Where("vault_refer = ?", v.Id).Delete(&Credential{}).Error; err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	if err := tx.Delete(v).Error; err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return tx.Commit().Error
 }
