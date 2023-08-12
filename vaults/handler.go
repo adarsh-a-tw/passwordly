@@ -6,12 +6,14 @@ import (
 
 	"github.com/adarsh-a-tw/passwordly/common"
 	"github.com/adarsh-a-tw/passwordly/users"
+	"github.com/adarsh-a-tw/passwordly/utils"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
 type VaultHandler struct {
+	ep         utils.AesEncryptionProvider
 	Repo       VaultRepository
 	UserRepo   users.UserRepository
 	SecretRepo SecretRepository
@@ -106,6 +108,11 @@ func (vh *VaultHandler) FetchVaultDetails(ctx *gin.Context) {
 		handleGormError(ctx, err)
 		return
 	}
+	if err = vh.decryptCredentials(credentials); err != nil {
+		ctx.JSON(http.StatusInternalServerError, common.InternalServerError())
+		return
+	}
+
 	vr := VaultResponse{}
 	vr.load(vault, credentials)
 
@@ -189,4 +196,15 @@ func handleGormError(ctx *gin.Context, err error) {
 	} else {
 		ctx.JSON(http.StatusInternalServerError, common.InternalServerError())
 	}
+}
+
+func (vh *VaultHandler) decryptCredentials(creds []Credential) error {
+	for i := range creds {
+		pwd, err := vh.ep.Decrypt(creds[i].Password)
+		if err != nil {
+			return err
+		}
+		creds[i].Password = pwd
+	}
+	return nil
 }

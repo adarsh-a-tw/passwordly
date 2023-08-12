@@ -5,11 +5,13 @@ import (
 
 	"github.com/adarsh-a-tw/passwordly/common"
 	"github.com/adarsh-a-tw/passwordly/users"
+	"github.com/adarsh-a-tw/passwordly/utils"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 )
 
 type SecretHandler struct {
+	ep        utils.AesEncryptionProvider
 	Repo      SecretRepository
 	VaultRepo VaultRepository
 	UserRepo  users.UserRepository
@@ -63,18 +65,23 @@ func (sh *SecretHandler) handleCreateCredential(ctx *gin.Context, csr *CreateSec
 		ctx.JSON(http.StatusBadRequest, common.ErrorResponse{Message: "Invalid Request body"})
 		return
 	}
+	ep, err := sh.ep.Encrypt(csr.Password)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, common.InternalServerError())
+		return
+	}
 	c := Credential{
 		Id:       uuid.NewString(),
 		Name:     csr.Name,
 		Username: csr.Username,
-		Password: csr.Password,
+		Password: ep,
 		Vault:    *v,
 	}
 	if err := sh.Repo.CreateCredential(&c); err != nil {
 		ctx.JSON(http.StatusInternalServerError, common.InternalServerError())
 		return
 	}
-
+	c.Password = csr.Password
 	sr := SecretResponse{}
 	sr.load(c)
 

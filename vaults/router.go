@@ -3,6 +3,7 @@ package vaults
 import (
 	"github.com/adarsh-a-tw/passwordly/middleware"
 	"github.com/adarsh-a-tw/passwordly/users"
+	"github.com/adarsh-a-tw/passwordly/utils"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
@@ -20,13 +21,17 @@ func SetupRoutes(r *gin.Engine, db *gorm.DB) {
 	}
 	secretRepo := &SecretRepositoryImpl{Db: db}
 
+	ep, _ := utils.NewEncryptionProvider()
+
 	vh := VaultHandler{
+		ep:         *ep,
 		Repo:       vaultsRepo,
 		UserRepo:   userRepo,
 		SecretRepo: secretRepo,
 	}
 
 	sh := SecretHandler{
+		ep:        *ep,
 		Repo:      secretRepo,
 		UserRepo:  userRepo,
 		VaultRepo: vaultsRepo,
