@@ -8,6 +8,7 @@ import (
 	"github.com/adarsh-a-tw/passwordly/common"
 	"github.com/adarsh-a-tw/passwordly/users"
 	um "github.com/adarsh-a-tw/passwordly/users/mocks"
+	utils_mocks "github.com/adarsh-a-tw/passwordly/utils/mocks"
 	v "github.com/adarsh-a-tw/passwordly/vaults"
 	vm "github.com/adarsh-a-tw/passwordly/vaults/mocks"
 	"github.com/stretchr/testify/assert"
@@ -72,7 +73,11 @@ func TestSecretHandler_CreateSecret_ShouldCreateSecretOfTypeCredential(t *testin
 		u.Id = mockUser1.Id
 	}).Return(nil)
 
+	ep := utils_mocks.NewEncryptionProvider(t)
+	ep.On("Encrypt", "test").Return("test", nil)
+
 	h := v.SecretHandler{
+		Ep:        ep,
 		Repo:      &msr,
 		VaultRepo: &mvr,
 		UserRepo:  &mur,

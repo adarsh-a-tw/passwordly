@@ -24,14 +24,14 @@ func SetupRoutes(r *gin.Engine, db *gorm.DB) {
 	ep, _ := utils.NewEncryptionProvider()
 
 	vh := VaultHandler{
-		ep:         *ep,
+		Ep:         ep,
 		Repo:       vaultsRepo,
 		UserRepo:   userRepo,
 		SecretRepo: secretRepo,
 	}
 
 	sh := SecretHandler{
-		ep:        *ep,
+		Ep:        ep,
 		Repo:      secretRepo,
 		UserRepo:  userRepo,
 		VaultRepo: vaultsRepo,

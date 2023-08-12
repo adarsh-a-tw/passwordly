@@ -9,11 +9,16 @@ import (
 	"github.com/adarsh-a-tw/passwordly/common"
 )
 
+type EncryptionProvider interface {
+	Encrypt(string) (string, error)
+	Decrypt(string) (string, error)
+}
+
 type AesEncryptionProvider struct {
 	gcm cipher.AEAD
 }
 
-func NewEncryptionProvider() (*AesEncryptionProvider, error) {
+func NewEncryptionProvider() (EncryptionProvider, error) {
 	c, err := aes.NewCipher([]byte(common.Cfg.EncryptionKey))
 	if err != nil {
 		return nil, err

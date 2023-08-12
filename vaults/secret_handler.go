@@ -11,7 +11,7 @@ import (
 )
 
 type SecretHandler struct {
-	ep        utils.AesEncryptionProvider
+	Ep        utils.EncryptionProvider
 	Repo      SecretRepository
 	VaultRepo VaultRepository
 	UserRepo  users.UserRepository
@@ -65,7 +65,7 @@ func (sh *SecretHandler) handleCreateCredential(ctx *gin.Context, csr *CreateSec
 		ctx.JSON(http.StatusBadRequest, common.ErrorResponse{Message: "Invalid Request body"})
 		return
 	}
-	ep, err := sh.ep.Encrypt(csr.Password)
+	ep, err := sh.Ep.Encrypt(csr.Password)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, common.InternalServerError())
 		return

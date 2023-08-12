@@ -13,7 +13,7 @@ import (
 )
 
 type VaultHandler struct {
-	ep         utils.AesEncryptionProvider
+	Ep         utils.EncryptionProvider
 	Repo       VaultRepository
 	UserRepo   users.UserRepository
 	SecretRepo SecretRepository
@@ -200,7 +200,7 @@ func handleGormError(ctx *gin.Context, err error) {
 
 func (vh *VaultHandler) decryptCredentials(creds []Credential) error {
 	for i := range creds {
-		pwd, err := vh.ep.Decrypt(creds[i].Password)
+		pwd, err := vh.Ep.Decrypt(creds[i].Password)
 		if err != nil {
 			return err
 		}

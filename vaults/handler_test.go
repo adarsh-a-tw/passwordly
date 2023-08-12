@@ -10,6 +10,7 @@ import (
 	"github.com/adarsh-a-tw/passwordly/common"
 	"github.com/adarsh-a-tw/passwordly/users"
 	user_mocks "github.com/adarsh-a-tw/passwordly/users/mocks"
+	utils_mocks "github.com/adarsh-a-tw/passwordly/utils/mocks"
 	"github.com/adarsh-a-tw/passwordly/vaults"
 	vaults_mocks "github.com/adarsh-a-tw/passwordly/vaults/mocks"
 	"github.com/stretchr/testify/assert"
@@ -541,6 +542,7 @@ func TestVaultHandler_FetchVaultDetails_ShouldSuccessfullyFetchVaultDetails(t *t
 	userId := "mock_user_id"
 	ctx, rec := common.PrepareContextAndResponseRecorder(t, fmt.Sprintf("/api/v1/vaults/%s", existingVault.Id), "GET", nil)
 
+	ep := utils_mocks.NewEncryptionProvider(t)
 	repo := &vaults_mocks.VaultRepository{}
 	userRepo := &user_mocks.UserRepository{}
 	secretRepo := &vaults_mocks.SecretRepository{}
@@ -570,7 +572,10 @@ func TestVaultHandler_FetchVaultDetails_ShouldSuccessfullyFetchVaultDetails(t *t
 		*(arg) = []vaults.Credential{*mc}
 	})
 
+	ep.On("Decrypt", mockCredential().Password).Return(mockCredential().Password, nil)
+
 	vh := vaults.VaultHandler{
+		Ep:         ep,
 		Repo:       repo,
 		UserRepo:   userRepo,
 		SecretRepo: secretRepo,
