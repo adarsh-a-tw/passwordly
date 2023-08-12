@@ -17,13 +17,25 @@ func migrate() {
 }
 
 func main() {
-	common.ConfigureDB(
-		common.Sqlite3,
-		&common.SqliteDBConfig{
-			Filename: "sqlite3.db",
-		},
-	)
+	err := common.LoadConfig(".")
+	if err != nil {
+		panic(err)
+	}
+	if common.Cfg.DBDriver == "postgres" {
+
+	} else {
+		common.ConfigureDB(
+			common.Sqlite3,
+			&common.SqliteDBConfig{
+				Filename: common.Cfg.DBSource,
+			},
+		)
+	}
 	migrate()
+
+	if common.Cfg.IsProduction {
+		gin.SetMode(gin.ReleaseMode)
+	}
 
 	r := gin.Default()
 

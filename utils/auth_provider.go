@@ -87,7 +87,7 @@ func generateJwtTokenString(uid string, tokenType AuthTokenType, ttl time.Time) 
 		"user_id": uid,
 		"type":    tokenType,
 		"exp":     jwt.NewNumericDate(ttl),
-	}).SignedString(common.JWTSecretKey)
+	}).SignedString([]byte(common.Cfg.JwtSecretKey))
 }
 
 func parseJwtTokenString(tokenStr string) (pat parsedAuthToken, err error) {
@@ -96,7 +96,7 @@ func parseJwtTokenString(tokenStr string) (pat parsedAuthToken, err error) {
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 		}
 
-		return common.JWTSecretKey, nil
+		return []byte(common.Cfg.JwtSecretKey), nil
 	})
 
 	if err != nil {
