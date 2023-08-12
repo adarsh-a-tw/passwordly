@@ -22,6 +22,12 @@ func main() {
 		panic(err)
 	}
 	if common.Cfg.DBDriver == "postgres" {
+		common.ConfigureDB(
+			common.PostgresDB,
+			&common.PostgresDBConfig{
+				SourceUrl: common.Cfg.DBSource,
+			},
+		)
 
 	} else {
 		common.ConfigureDB(

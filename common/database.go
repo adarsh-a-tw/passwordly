@@ -2,6 +2,8 @@ package common
 
 import (
 	"fmt"
+	"strconv"
+	"strings"
 
 	"gorm.io/driver/postgres"
 	"gorm.io/driver/sqlite"
@@ -51,7 +53,20 @@ func (s *SqliteDBConfig) getDSN() string {
 }
 
 func (p *PostgresDBConfig) getDSN() string {
-	return fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%d", p.Host, p.User, p.Password, p.Name, p.Port)
+	ss := strings.Split(p.SourceUrl, "://")
+	ss = strings.Split(ss[1], "@")
+	up := strings.Split(ss[0], ":")
+	user, pwd := up[0], up[1]
+	ss = strings.Split(ss[1], "/")
+	hp := strings.Split(ss[0], ":")
+	host := hp[0]
+	port, err := strconv.Atoi(hp[1])
+	if err != nil {
+		panic(err)
+	}
+	dbName := ss[1]
+
+	return fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%d sslmode=disable", host, user, pwd, dbName, port)
 }
 
 type SqliteDBConfig struct {
@@ -59,9 +74,5 @@ type SqliteDBConfig struct {
 }
 
 type PostgresDBConfig struct {
-	Host     string
-	Port     int64
-	User     string
-	Password string
-	Name     string
+	SourceUrl string
 }
