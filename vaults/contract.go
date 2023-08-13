@@ -71,7 +71,7 @@ func (sr *SecretResponse) load(s Securable) {
 		sr.CreatedAt = cred.CreatedAt.Unix()
 		sr.UpdatedAt = cred.UpdatedAt.Unix()
 		sr.Username = cred.Username
-		sr.Password = cred.Password
+		sr.Password = string(cred.Password)
 	case TypeKey:
 		key := s.(Key)
 		sr.Id = key.Id

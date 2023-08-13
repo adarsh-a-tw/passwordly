@@ -200,11 +200,11 @@ func handleGormError(ctx *gin.Context, err error) {
 
 func (vh *VaultHandler) decryptCredentials(creds []Credential) error {
 	for i := range creds {
-		pwd, err := vh.Ep.Decrypt(creds[i].Password)
+		pwd, err := vh.Ep.Decrypt(string(creds[i].Password))
 		if err != nil {
 			return err
 		}
-		creds[i].Password = pwd
+		creds[i].Password = []byte(pwd)
 	}
 	return nil
 }

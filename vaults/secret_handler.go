@@ -74,14 +74,14 @@ func (sh *SecretHandler) handleCreateCredential(ctx *gin.Context, csr *CreateSec
 		Id:       uuid.NewString(),
 		Name:     csr.Name,
 		Username: csr.Username,
-		Password: ep,
+		Password: []byte(ep),
 		Vault:    *v,
 	}
 	if err := sh.Repo.CreateCredential(&c); err != nil {
 		ctx.JSON(http.StatusInternalServerError, common.InternalServerError())
 		return
 	}
-	c.Password = csr.Password
+	c.Password = []byte(csr.Password)
 	sr := SecretResponse{}
 	sr.load(c)
 

@@ -19,7 +19,7 @@ type Credential struct {
 	Id         string `json:"id" gorm:"primaryKey"`
 	Name       string `json:"name" gorm:"notNull"`
 	Username   string `json:"username" gorm:"notNull"`
-	Password   string `json:"password" gorm:"notNull"`
+	Password   []byte `json:"password" gorm:"notNull,type:bytea"`
 	VaultRefer string
 	Vault      Vault     `gorm:"foreignKey:VaultRefer;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
 	CreatedAt  time.Time `json:"created_at"`

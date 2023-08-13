@@ -572,7 +572,7 @@ func TestVaultHandler_FetchVaultDetails_ShouldSuccessfullyFetchVaultDetails(t *t
 		*(arg) = []vaults.Credential{*mc}
 	})
 
-	ep.On("Decrypt", mockCredential().Password).Return(mockCredential().Password, nil)
+	ep.On("Decrypt", string(mockCredential().Password)).Return(string(mockCredential().Password), nil)
 
 	vh := vaults.VaultHandler{
 		Ep:         ep,
@@ -627,7 +627,7 @@ func mockCredential() *vaults.Credential {
 		Id:         "mock_cred",
 		Name:       "Test Cred",
 		Username:   "username",
-		Password:   "password",
+		Password:   []byte("password"),
 		VaultRefer: "mock_vault_id_1",
 		Vault:      (*mockVaults())[0],
 	}
