@@ -1,9 +1,6 @@
 package main
 
 import (
-	"fmt"
-	"os"
-
 	"github.com/adarsh-a-tw/passwordly/common"
 	"github.com/adarsh-a-tw/passwordly/users"
 	"github.com/adarsh-a-tw/passwordly/vaults"
@@ -20,11 +17,8 @@ func migrate() {
 }
 
 func main() {
-	fmt.Println("DB_SOURCE: ", os.Getenv("DB_SOURCE"))
-	err := common.LoadConfig(".")
-	if err != nil {
-		panic(err)
-	}
+	common.LoadConfig()
+
 	if common.Cfg.DBDriver == "postgres" {
 		common.ConfigureDB(
 			common.PostgresDB,

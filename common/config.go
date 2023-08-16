@@ -1,27 +1,40 @@
 package common
 
-import "github.com/spf13/viper"
+import (
+	"fmt"
+	"os"
+
+	"github.com/joho/godotenv"
+)
 
 var Cfg Config
 
 type Config struct {
-	DBDriver      string `mapstructure:"DB_DRIVER"`
-	DBSource      string `mapstructure:"DB_SOURCE"`
-	JwtSecretKey  string `mapstructure:"JWT_SECRET_KEY"`
-	IsProduction  bool   `mapstructure:"IS_PRODUCTION"`
-	EncryptionKey string `mapstructure:"ENCRYPTION_KEY"`
+	DBDriver      string
+	DBSource      string
+	JwtSecretKey  string
+	IsProduction  bool
+	EncryptionKey string
 }
 
-func LoadConfig(path string) (err error) {
-	viper.AddConfigPath(path)
-	viper.SetConfigName("app")
-	viper.SetConfigType("env")
-
-	err = viper.ReadInConfig()
+func LoadConfig() {
+	err := godotenv.Load()
 	if err != nil {
-		return
+		panic(err)
 	}
+	Cfg = Config{
+		DBDriver:      loadEnv("DB_DRIVER"),
+		DBSource:      loadEnv("DB_SOURCE"),
+		JwtSecretKey:  loadEnv("JWT_SECRET_KEY"),
+		EncryptionKey: loadEnv("ENCRYPTION_KEY"),
+		IsProduction:  loadEnv("IS_PRODUCTION") == "true",
+	}
+}
 
-	err = viper.Unmarshal(&Cfg)
-	return
+func loadEnv(envVarName string) string {
+	env, exists := os.LookupEnv(envVarName)
+	if !exists {
+		panic(fmt.Sprintf("Env variable %s cannot be loaded.", env))
+	}
+	return env
 }
