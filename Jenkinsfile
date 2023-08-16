@@ -1,5 +1,5 @@
 pipeline {
-    agent any
+    agent { node { label 'kubeagent' }}
     tools {
         go 'go1.19'
     }
