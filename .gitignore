@@ -33,4 +33,4 @@ go.work
 
 __debug_bin
 
-app.env
+.env

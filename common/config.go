@@ -2,6 +2,7 @@ package common
 
 import (
 	"fmt"
+	"log"
 	"os"
 
 	"github.com/joho/godotenv"
@@ -20,7 +21,7 @@ type Config struct {
 func LoadConfig() {
 	err := godotenv.Load()
 	if err != nil {
-		panic(err)
+		log.Println("Did not find .env file.")
 	}
 	Cfg = Config{
 		DBDriver:      loadEnv("DB_DRIVER"),
@@ -34,7 +35,7 @@ func LoadConfig() {
 func loadEnv(envVarName string) string {
 	env, exists := os.LookupEnv(envVarName)
 	if !exists {
-		panic(fmt.Sprintf("Env variable %s cannot be loaded.", env))
+		panic(fmt.Sprintf("Env variable %s cannot be loaded.", envVarName))
 	}
 	return env
 }
