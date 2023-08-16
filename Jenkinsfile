@@ -12,7 +12,7 @@ pipeline {
         stage('Pre Test') {
             steps {
                 echo 'Installing dependencies'
-                sh 'sudo apt install -y build-essential'
+                sh 'apt install -y build-essential'
                 sh 'go version'
                 sh 'go mod download'
             }
