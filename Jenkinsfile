@@ -23,7 +23,7 @@ pipeline {
                   // DOCKER HUB
                   
                   /* Build the container image */            
-                  def dockerImage = docker.build("my-image:${env.BUILD_ID}")
+                  def dockerImage = docker.build("adarshtw/passwordly_backend:${BUILD_NUMBER}")
                         
                   /* Push the container to the docker Hub */
                   dockerImage.push()
