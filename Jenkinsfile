@@ -1,4 +1,5 @@
 pipeline {
+    agent any
     tools {
         go 'go1.19'
     }
