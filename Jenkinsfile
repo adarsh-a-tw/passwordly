@@ -31,7 +31,7 @@ pipeline {
                     echo 'Running vetting'
                     sh 'go vet .'
                     echo 'Running test'
-                    sh 'make unit-test'
+                    sh 'make unit-tests'
                 }
             }
         }
