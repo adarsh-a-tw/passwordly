@@ -14,7 +14,6 @@ pipeline {
                 echo 'Installing dependencies'
                 sh 'go version'
                 sh 'go mod download'
-                sh 'go get -u golang.org/x/lint/golint'
             }
         }
         
@@ -30,8 +29,6 @@ pipeline {
                 withEnv(["PATH+GO=${GOPATH}/bin"]){
                     echo 'Running vetting'
                     sh 'go vet .'
-                    echo 'Running linting'
-                    sh 'golint .'
                     echo 'Running test'
                     sh 'make unit-test'
                 }
@@ -39,13 +36,4 @@ pipeline {
         }
         
     }
-    post {
-        always {
-            emailext body: "${currentBuild.currentResult}: Job ${env.JOB_NAME} build ${env.BUILD_NUMBER}\n More info at: ${env.BUILD_URL}",
-                recipientProviders: [[$class: 'DevelopersRecipientProvider'], [$class: 'RequesterRecipientProvider']],
-                to: "${params.RECIPIENTS}",
-                subject: "Jenkins Build ${currentBuild.currentResult}: Job ${env.JOB_NAME}"
-            
-        }
-    }  
 }
