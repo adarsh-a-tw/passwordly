@@ -1,0 +1,37 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: passwordly-backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: passwordly-backend
+  template:
+    metadata:
+      labels:
+        app: passwordly-backend
+    spec:
+      containers:
+      - image: adarshtw/passwordly_backend:$IMAGE_TAG
+        imagePullPolicy: "Always"
+        name: passwordly-backend
+        envFrom:
+        - secretRef:
+            name: passwordly-secret
+        ports:
+        - containerPort: 8080
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: passwordly-backend
+  name: passwordly-backend
+spec:
+  ports:
+  - name: http
+    port: 80
+    targetPort: 8080
+  selector:
+    app: passwordly-backend
