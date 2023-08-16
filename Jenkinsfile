@@ -1,5 +1,4 @@
 pipeline {
-    agent any
     tools {
         go 'go1.19'
     }
@@ -18,12 +17,15 @@ pipeline {
             }
         }
         
-        // stage('Build') {
-        //     steps {
-        //         echo 'Compiling and building'
-        //         sh 'go build'
-        //     }
-        // }
+        stage('Build') {
+            steps {
+                echo 'Building'
+                sh '''
+                /kaniko/executor --dockerfile `pwd`/Dockerfile \
+                --context `pwd` --destination=adarshtw/passwordly_backend:${BUILD_NUMBER}
+                '''
+            }
+        }
 
         stage('Test') {
             steps {
