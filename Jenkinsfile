@@ -78,6 +78,11 @@ pipeline {
         '''
     }
   }
+
+ environment {
+        DOCKER_CREDENTIAL = credentials('dockerhub')
+ }
+
   stages {
 
     stage('Pre-Tests') {
@@ -112,7 +117,15 @@ pipeline {
     stage('Login-Into-Docker') {
       steps {
         container('docker') {
-          sh 'docker login -u ${DOCKER_USERNAME} -p ${DOCKER_PASSWORD}'
+          script {
+            withCredentials([string(credentialsId: 'dockerhub', variable: 'DOCKER_CREDENTIAL')]) {
+                def creds = DOCKER_CREDENTIAL.tokenize(':')
+                def dockerUsername = creds[0]
+                def dockerPassword = creds[1]
+
+                sh "docker login -u $dockerUsername -p $dockerPassword"
+            }
+        }
       }
     }
     }
