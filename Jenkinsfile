@@ -84,7 +84,7 @@ pipeline {
     stage('Update K8s Deployment') {
       steps {
         container('docker') {
-          sh 'apk add gettext'
+          sh 'apk add gettext curl'
           sh 'curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl" && \
     chmod +x kubectl && \
     mv kubectl /usr/local/bin/'
