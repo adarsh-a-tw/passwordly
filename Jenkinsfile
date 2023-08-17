@@ -118,12 +118,8 @@ pipeline {
       steps {
         container('docker') {
           script {
-            withCredentials([string(credentialsId: 'dockerhub', variable: 'DOCKER_CREDENTIAL')]) {
-                def creds = DOCKER_CREDENTIAL.tokenize(':')
-                def dockerUsername = creds[0]
-                def dockerPassword = creds[1]
-
-                sh "docker login -u $dockerUsername -p $dockerPassword"
+            withCredentials([usernamePassword(credentialsId: 'dockerhub', usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
+                            sh "docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD"
             }
         }
       }
