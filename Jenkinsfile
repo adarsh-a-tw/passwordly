@@ -89,7 +89,7 @@ pipeline {
     chmod +x kubectl && \
     mv kubectl /usr/local/bin/'
           sh 'envsubst < deployment/k8s/manifest.yaml > manifest.yaml'
-          withKubeConfig([namespace: "default"]) {
+          withKubeConfig([credentialsId: 'kubeconfig']) {
             sh 'kubectl apply -f manifest.yaml'
           }
         }
