@@ -1,6 +1,8 @@
 package main
 
 import (
+	"net/http"
+
 	"github.com/adarsh-a-tw/passwordly/common"
 	"github.com/adarsh-a-tw/passwordly/users"
 	"github.com/adarsh-a-tw/passwordly/vaults"
@@ -50,6 +52,8 @@ func main() {
 
 	users.SetupRoutes(r, db)
 	vaults.SetupRoutes(r, db)
+
+	r.GET("/health", func(ctx *gin.Context) { ctx.Status(http.StatusOK) })
 
 	r.Run()
 }
