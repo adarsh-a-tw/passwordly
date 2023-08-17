@@ -85,6 +85,9 @@ pipeline {
       steps {
         container('docker') {
           sh 'apk add gettext'
+          sh 'curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl" && \
+    chmod +x kubectl && \
+    mv kubectl /usr/local/bin/'
           sh 'envsubst < deployment/k8s/manifest.yaml > manifest.yaml'
           withKubeConfig([namespace: "default"]) {
             sh 'kubectl apply -f manifest.yaml'
