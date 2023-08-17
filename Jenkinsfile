@@ -56,7 +56,7 @@ pipeline {
     stage('Build-Docker-Image') {
       steps {
         container('docker') {
-          sh 'docker build -t adarshtw/passwordly_backend:latest .'
+          sh 'docker build -t adarshtw/passwordly_backend:${BUILD_NUMBER} .'
         }
       }
     }
@@ -76,10 +76,22 @@ pipeline {
     stage('Push-Images-Docker-to-DockerHub') {
       steps {
         container('docker') {
-          sh 'docker push adarshtw/passwordly_backend:latest'
+          sh 'docker push adarshtw/passwordly_backend:${BUILD_NUMBER}'
         }
       }
     }
+
+    stage('Update K8s Deployment') {
+      steps {
+        sh 'envsubst < deployment/k8s/manifest.yaml > manifest.yaml'
+        container('docker') {
+          withKubeConfig([namespace: "default"]) {
+            sh 'kubectl apply -f manifest.yaml'
+          }
+        }
+      }
+    }
+
   }
 
   post {

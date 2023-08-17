@@ -13,7 +13,7 @@ spec:
         app: passwordly-backend
     spec:
       containers:
-      - image: adarshtw/passwordly_backend:$IMAGE_TAG
+      - image: adarshtw/passwordly_backend:$BUILD_NUMBER
         imagePullPolicy: "Always"
         name: passwordly-backend
         envFrom:
