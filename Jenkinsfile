@@ -83,6 +83,7 @@ pipeline {
 
     stage('Update K8s Deployment') {
       steps {
+        sh 'apk add gettext'
         sh 'envsubst < deployment/k8s/manifest.yaml > manifest.yaml'
         container('docker') {
           withKubeConfig([namespace: "default"]) {
